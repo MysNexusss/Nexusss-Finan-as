@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caderneta — controle de gastos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --paper:#F5F1E8;
+    --paper-dim:#ECE5D3;
+    --card:#FFFDF8;
+    --ink:#1C2B39;
+    --ink-soft:#5B6B78;
+    --brass:#A9792A;
+    --brass-dark:#7E5A1D;
+    --pine:#2F5233;
+    --brick:#8B3A2E;
+    --amber:#C1752A;
+    --line:#D8CFB8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace; font-variant-numeric: tabular-nums;}
+  .hidden{display:none !important;}
+  button{font-family:inherit; cursor:pointer;}
+  input,select{font-family:inherit;}
+
+  /* ---------- AUTH SCREEN ---------- */
+  #auth-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 20% 15%, #24384a 0%, transparent 45%),
+      var(--ink);
+    padding:24px;
+  }
+  .passbook{
+    width:100%;
+    max-width:380px;
+    background:var(--card);
+    border-radius:4px;
+    padding:40px 32px 32px;
+    position:relative;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+    border-top:6px solid var(--brass);
+  }
+  .passbook::before{
+    content:"";
+    position:absolute;
+    top:-3px; left:24px; right:24px; height:3px;
+    background:repeating-linear-gradient(90deg, transparent 0 6px, var(--paper) 6px 8px);
+  }
+  .passbook h1{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-weight:500;
+    font-size:34px;
+    margin:0 0 4px;
+    color:var(--ink);
+  }
+  .passbook .kicker{
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    font-size:11px;
+    color:var(--brass-dark);
+    font-weight:600;
+    margin-bottom:18px;
+  }
+  .tabs{
+    display:flex;
+    border-bottom:1px solid var(--line);
+    margin-bottom:22px;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:10px 0;
+    background:none;
+    border:none;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink-soft);
+    border-bottom:2px solid transparent;
+    margin-bottom:-1px;
+  }
+  .tab.active{
+    color:var(--ink);
+    border-bottom:2px solid var(--brass);
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-size:15px;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .field input:focus, .field select:focus, button:focus-visible{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+  }
+  .btn-primary{
+    width:100%;
+    padding:12px;
+    background:var(--brass);
+    color:var(--card);
+    border:none;
+    border-radius:3px;
+    font-weight:600;
+    font-size:15px;
+    letter-spacing:0.02em;
+    margin-top:6px;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+  }
+  .btn-primary:hover{background:var(--brass-dark);}
+  .btn-primary:disabled{opacity:0.6; cursor:default;}
+  .auth-msg{
+    font-size:13px;
+    margin-top:14px;
+    padding:10px 12px;
+    border-radius:3px;
+    display:none;
+  }
+  .auth-msg.error{ display:block; background:#FBEAE6; color:var(--brick); }
+  .auth-msg.ok{ display:block; background:#E8F0E6; color:var(--pine); }
+  .setup-hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:20px;
+    line-height:1.5;
+    border-top:1px dashed var(--line);
+    padding-top:14px;
+    display:none;
+  }
+
+  /* ---------- APP SCREEN ---------- */
+  header{
+    background:var(--ink);
+    color:var(--paper);
+    padding:16px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  header h1{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-weight:500;
+    font-size:22px;
+    margin:0;
+  }
+  .user-chip{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    font-size:13px;
+    color:#C9D2D8;
+  }
+  #signout-btn{
+    background:none;
+    border:1px solid #46586A;
+    color:var(--paper);
+    padding:6px 12px;
+    border-radius:3px;
+    font-size:13px;
+  }
+  #signout-btn:hover{background:#25384A;}
+
+  main{
+    max-width:920px;
+    margin:0 auto;
+    padding:28px 20px 80px;
+  }
+
+  .summary-row{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:28px;
+  }
+  .summary-card{
+    background:var(--card);
+    border-radius:4px;
+    padding:18px 18px 16px;
+    border-top:4px solid var(--line);
+  }
+  .summary-card.saldo{border-top-color:var(--brass);}
+  .summary-card.receita{border-top-color:var(--pine);}
+  .summary-card.despesa{border-top-color:var(--brick);}
+  .summary-card .label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .summary-card .value{
+    font-size:24px;
+    font-weight:600;
+    margin-top:6px;
+  }
+
+  .panel{
+    background:var(--card);
+    border-radius:4px;
+    padding:22px;
+    margin-bottom:24px;
+  }
+  .panel h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:17px;
+    margin:0 0 16px;
+  }
+
+  .form-grid{
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap:12px;
+    align-items:end;
+  }
+  .form-grid .field{margin-bottom:0;}
+  .type-toggle{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .type-toggle button{
+    flex:1;
+    padding:10px 0;
+    background:var(--paper);
+    border:none;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    transition:background-color .2s ease, color .2s ease;
+  }
+  .type-toggle button.active[data-type="despesa"]{background:var(--brick); color:#fff;}
+  .type-toggle button.active[data-type="receita"]{background:var(--pine); color:#fff;}
+  .form-row2{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap:12px;
+    margin-top:12px;
+    align-items:end;
+  }
+  #add-btn{
+    background:var(--brass);
+    color:#fff;
+    border:none;
+    border-radius:3px;
+    padding:11px 20px;
+    font-weight:600;
+    font-size:14px;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+    white-space:nowrap;
+  }
+  #add-btn:hover{background:var(--brass-dark);}
+  #add-btn:disabled{opacity:0.6;}
+  #form-msg{
+    font-size:13px;
+    color:var(--brick);
+    margin-top:10px;
+    display:none;
+  }
+
+  .filters{
+    display:flex;
+    gap:12px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .filters select{
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:var(--paper);
+    font-size:13px;
+    color:var(--ink);
+  }
+
+  .category-bars{display:flex; flex-direction:column; gap:10px;}
+  .cat-row{display:grid; grid-template-columns: 110px 1fr 90px; align-items:center; gap:10px;}
+  .cat-row .cat-name{font-size:13px; color:var(--ink-soft);}
+  .cat-row .bar-track{background:var(--paper-dim); border-radius:2px; height:8px; overflow:hidden;}
+  .cat-row .bar-fill{background:var(--brass); height:100%; border-radius:2px;}
+  .cat-row .cat-amt{font-size:13px; text-align:right;}
+  .cat-row .bar-fill.ok{background:var(--pine);}
+  .cat-row .bar-fill.warning{background:var(--amber);}
+  .cat-row .bar-fill.over{background:var(--brick);}
+  .cat-row .cat-limit{font-size:11px; color:var(--ink-soft); display:block; margin-top:2px; font-weight:400;}
+
+  .panel-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .panel-header h2{margin:0;}
+  .cancel-edit-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    padding:6px 12px;
+    border-radius:3px;
+    font-size:12px;
+    display:none;
+  }
+  .cancel-edit-btn:hover{background:var(--paper-dim);}
+
+  .month-nav{display:flex; align-items:center; gap:6px;}
+  .month-nav button{
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--ink);
+    width:32px;
+    height:32px;
+    border-radius:3px;
+    font-size:15px;
+    line-height:1;
+  }
+  .month-nav button:hover{background:var(--paper-dim);}
+
+  .tx-edit{
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:14px;
+    line-height:1;
+    padding:4px 6px;
+    border-radius:3px;
+  }
+  .tx-edit:hover{color:var(--brass-dark); background:var(--paper-dim);}
+  .tx-row.editing{background:var(--paper-dim); border-radius:3px;}
+
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:24px;
+    transform:translateX(-50%) translateY(12px);
+    background:var(--ink);
+    color:var(--paper);
+    padding:12px 20px;
+    border-radius:4px;
+    font-size:13.5px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:80;
+    box-shadow:0 10px 24px rgba(0,0,0,0.25);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .budget-form{display:flex; flex-direction:column; gap:10px;}
+  .budget-row{display:grid; grid-template-columns:1fr 140px; align-items:center; gap:12px;}
+  .budget-row label{font-size:13px; color:var(--ink-soft);}
+  .budget-row input{
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:var(--paper);
+    font-size:14px;
+    color:var(--ink);
+    text-align:right;
+    width:100%;
+  }
+  #budget-save-btn{
+    margin-top:6px;
+    background:var(--brass);
+    color:#fff;
+    border:none;
+    border-radius:3px;
+    padding:9px 18px;
+    font-weight:600;
+    font-size:13px;
+  }
+  #budget-save-btn:hover{background:var(--brass-dark);}
+  #budget-msg{font-size:13px; margin-top:8px; display:none;}
+
+  .alert-banner{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    background:#FBEAE6;
+    color:var(--brick);
+    border-radius:3px;
+    padding:12px 14px;
+    font-size:13px;
+    margin-bottom:14px;
+    line-height:1.6;
+  }
+  .alert-banner strong{display:block; margin-bottom:2px;}
+
+  .ledger{
+    border-top:2px dashed var(--line);
+    padding-top:4px;
+  }
+  .tx-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:13px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .tx-info{display:flex; flex-direction:column; gap:2px; min-width:0;}
+  .tx-desc{font-size:14.5px; font-weight:600; color:var(--ink);}
+  .tx-meta{font-size:12px; color:var(--ink-soft);}
+  .tx-right{display:flex; align-items:center; gap:14px; flex-shrink:0;}
+  .tx-amt{font-size:15px; font-weight:600;}
+  .tx-amt.despesa{color:var(--brick);}
+  .tx-amt.receita{color:var(--pine);}
+  .tx-del{
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:16px;
+    line-height:1;
+    padding:4px 6px;
+    border-radius:3px;
+  }
+  .tx-del:hover{color:var(--brick); background:var(--paper-dim);}
+  .empty-state{
+    text-align:center;
+    padding:36px 10px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  @media (max-width:640px){
+    .summary-row{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr;}
+    .form-row2{grid-template-columns:1fr 1fr; }
+    #add-btn{grid-column:1 / -1;}
+    .tx-row{align-items:flex-start; flex-direction:column;}
+    .tx-right{width:100%; justify-content:space-between;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="auth-screen">
+  <div class="passbook">
+    <div class="kicker">Controle de gastos pessoais</div>
+    <h1>Caderneta</h1>
+    <div class="tabs">
+      <button class="tab active" data-tab="login">Entrar</button>
+      <button class="tab" data-tab="signup">Criar conta</button>
+    </div>
+
+    <form id="auth-form">
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Senha</label>
+        <input type="password" id="password" autocomplete="current-password" required minlength="6">
+      </div>
+      <button type="submit" class="btn-primary" id="auth-submit">Entrar</button>
+    </form>
+    <div class="auth-msg" id="auth-msg"></div>
+
+    <div class="setup-hint" id="config-hint">
+      Configuração pendente: abra este arquivo e preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no início do script, com os dados do seu projeto Supabase.
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="app-screen" class="hidden">
+  <header>
+    <h1>Caderneta</h1>
+    <div class="user-chip">
+      <span id="user-email"></span>
+      <button id="signout-btn">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="summary-row">
+      <div class="summary-card saldo">
+        <div class="label">Saldo do mês</div>
+        <div class="value mono" id="summary-saldo">R$ 0,00</div>
+      </div>
+      <div class="summary-card receita">
+        <div class="label">Receitas</div>
+        <div class="value mono" id="summary-receita">R$ 0,00</div>
+      </div>
+      <div class="summary-card despesa">
+        <div class="label">Despesas</div>
+        <div class="value mono" id="summary-despesa">R$ 0,00</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2 id="tx-form-title">Novo lançamento</h2>
+        <button type="button" class="cancel-edit-btn" id="cancel-edit-btn">Cancelar edição</button>
+      </div>
+      <form id="tx-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="tx-desc">Descrição</label>
+            <input type="text" id="tx-desc" placeholder="Ex.: Supermercado" required>
+          </div>
+          <div class="field">
+            <label for="tx-amount">Valor (R$)</label>
+            <input type="number" id="tx-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required>
+          </div>
+          <div class="field">
+            <label>Tipo</label>
+            <div class="type-toggle">
+              <button type="button" class="active" data-type="despesa">Despesa</button>
+              <button type="button" data-type="receita">Receita</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row2">
+          <div class="field">
+            <label for="tx-category">Categoria</label>
+            <select id="tx-category">
+              <option>Alimentação</option>
+              <option>Transporte</option>
+              <option>Moradia</option>
+              <option>Saúde</option>
+              <option>Lazer</option>
+              <option>Educação</option>
+              <option>Salário</option>
+              <option>Outros</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="tx-date">Data</label>
+            <input type="date" id="tx-date" required>
+          </div>
+          <div></div>
+          <button type="submit" id="add-btn">Lançar</button>
+        </div>
+      </form>
+      <div id="form-msg"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Orçamento por categoria</h2>
+      <p style="font-size:13px;color:var(--ink-soft);margin:-8px 0 16px;">Defina um limite mensal para cada categoria. Deixe em branco para não acompanhar.</p>
+      <div class="budget-form" id="budget-form"></div>
+      <button type="button" id="budget-save-btn">Salvar orçamento</button>
+      <div id="budget-msg"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Gastos por categoria (mês selecionado)</h2>
+      <div id="budget-alerts"></div>
+      <div class="category-bars" id="category-bars">
+        <div class="empty-state">Sem despesas neste mês ainda.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Lançamentos</h2>
+      <div class="filters">
+        <div class="month-nav">
+          <button type="button" id="prev-month" aria-label="Mês anterior">‹</button>
+          <select id="filter-month"></select>
+          <button type="button" id="next-month" aria-label="Próximo mês">›</button>
+        </div>
+        <select id="filter-category">
+          <option value="">Todas as categorias</option>
+          <option>Alimentação</option>
+          <option>Transporte</option>
+          <option>Moradia</option>
+          <option>Saúde</option>
+          <option>Lazer</option>
+          <option>Educação</option>
+          <option>Salário</option>
+          <option>Outros</option>
+        </select>
+      </div>
+      <div class="ledger" id="ledger">
+        <div class="empty-state">Carregando lançamentos…</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — preencha com os dados do seu projeto Supabase
+   (Painel do Supabase → Project Settings → API)
+   ============================================================ */
+const SUPABASE_URL = 'COLE_AQUI_A_SUA_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'COLE_AQUI_A_SUA_SUPABASE_ANON_KEY';
+/* ============================================================ */
+
+const isConfigured = !SUPABASE_URL.startsWith('COLE_AQUI') && !SUPABASE_ANON_KEY.startsWith('COLE_AQUI');
+let db = null;
+if (isConfigured) {
+  const { createClient } = supabase;
+  db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  document.getElementById('config-hint').style.display = 'block';
+}
+
+const currency = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+const CATEGORIES = ['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Salário','Outros'];
+const BUDGET_CATEGORIES = CATEGORIES.filter(c => c !== 'Salário');
+const CATEGORY_PLACEHOLDERS = {
+  'Alimentação': 'Ex.: Supermercado',
+  'Transporte': 'Ex.: Uber, gasolina',
+  'Moradia': 'Ex.: Aluguel, conta de luz',
+  'Saúde': 'Ex.: Farmácia, consulta',
+  'Lazer': 'Ex.: Cinema, streaming',
+  'Educação': 'Ex.: Curso, material',
+  'Salário': 'Ex.: Salário do mês',
+  'Outros': 'Ex.: Diversos'
+};
+
+let currentTab = 'login';
+let allTx = [];
+let allBudgets = {};
+let selectedType = 'despesa';
+let editingId = null;
+
+function showToast(text){
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(()=> toast.classList.remove('show'), 2600);
+}
+
+/* ---------- referências ---------- */
+const authScreen = document.getElementById('auth-screen');
+const appScreen = document.getElementById('app-screen');
+const authForm = document.getElementById('auth-form');
+const authMsg = document.getElementById('auth-msg');
+const authSubmit = document.getElementById('auth-submit');
+const userEmailEl = document.getElementById('user-email');
+
+/* ---------- tabs de autenticação ---------- */
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    authSubmit.textContent = currentTab === 'login' ? 'Entrar' : 'Criar conta';
+    hideAuthMsg();
+  });
+});
+
+function showAuthMsg(text, type){
+  authMsg.textContent = text;
+  authMsg.className = 'auth-msg ' + type;
+}
+function hideAuthMsg(){
+  authMsg.className = 'auth-msg';
+}
+
+authForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!isConfigured){
+    showAuthMsg('Configure SUPABASE_URL e SUPABASE_ANON_KEY antes de continuar.', 'error');
+    return;
+  }
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  authSubmit.disabled = true;
+  hideAuthMsg();
+  try{
+    if(currentTab === 'login'){
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    } else {
+      const { data, error } = await db.auth.signUp({ email, password });
+      if(error) throw error;
+      if(data.user && !data.session){
+        showAuthMsg('Conta criada. Verifique seu e-mail para confirmar antes de entrar.', 'ok');
+        authSubmit.disabled = false;
+        return;
+      }
+    }
+  }catch(err){
+    showAuthMsg(traduzErro(err.message), 'error');
+  }
+  authSubmit.disabled = false;
+});
+
+function traduzErro(msg){
+  if(!msg) return 'Não foi possível concluir. Tente novamente.';
+  if(msg.includes('Invalid login credentials')) return 'E-mail ou senha inválidos.';
+  if(msg.includes('User already registered')) return 'Este e-mail já tem uma conta. Tente entrar.';
+  if(msg.includes('Password should be')) return 'A senha precisa ter pelo menos 6 caracteres.';
+  return msg;
+}
+
+document.getElementById('signout-btn').addEventListener('click', async ()=>{
+  await db.auth.signOut();
+});
+
+/* ---------- alternância de telas conforme sessão ---------- */
+async function initAuthWatcher(){
+  if(!isConfigured) return;
+  const { data: { session } } = await db.auth.getSession();
+  handleSession(session);
+  db.auth.onAuthStateChange((_event, session)=>{
+    handleSession(session);
+  });
+}
+
+function handleSession(session){
+  if(session && session.user){
+    authScreen.classList.add('hidden');
+    appScreen.classList.remove('hidden');
+    userEmailEl.textContent = session.user.email;
+    loadTransactions();
+    loadBudgets();
+  } else {
+    appScreen.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+  }
+}
+
+/* ---------- formulário de lançamento ---------- */
+document.querySelectorAll('.type-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedType = btn.dataset.type;
+  });
+});
+
+document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
+
+const txForm = document.getElementById('tx-form');
+const formMsg = document.getElementById('form-msg');
+const addBtn = document.getElementById('add-btn');
+const txCategorySelect = document.getElementById('tx-category');
+const txDescInput = document.getElementById('tx-desc');
+const txFormTitle = document.getElementById('tx-form-title');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+txCategorySelect.addEventListener('change', ()=>{
+  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+});
+txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+
+function startEdit(id){
+  const t = allTx.find(tx=>tx.id === id);
+  if(!t) return;
+  editingId = id;
+  document.getElementById('tx-desc').value = t.description;
+  document.getElementById('tx-amount').value = t.amount;
+  document.getElementById('tx-category').value = t.category;
+  document.getElementById('tx-date').value = t.occurred_on;
+  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[t.category] || 'Descrição';
+  document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.type-toggle button[data-type="${t.type}"]`).classList.add('active');
+  selectedType = t.type;
+  txFormTitle.textContent = 'Editar lançamento';
+  addBtn.textContent = 'Salvar alterações';
+  cancelEditBtn.style.display = 'inline-block';
+  txForm.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function cancelEdit(){
+  editingId = null;
+  txForm.reset();
+  document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
+  document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.type-toggle button[data-type="despesa"]').classList.add('active');
+  selectedType = 'despesa';
+  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+  txFormTitle.textContent = 'Novo lançamento';
+  addBtn.textContent = 'Lançar';
+  cancelEditBtn.style.display = 'none';
+  formMsg.style.display = 'none';
+}
+
+cancelEditBtn.addEventListener('click', cancelEdit);
+
+txForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const description = document.getElementById('tx-desc').value.trim();
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const category = document.getElementById('tx-category').value;
+  const occurred_on = document.getElementById('tx-date').value;
+
+  if(!description || !amount || amount <= 0){
+    formMsg.textContent = 'Preencha a descrição e um valor maior que zero.';
+    formMsg.style.display = 'block';
+    return;
+  }
+  formMsg.style.display = 'none';
+  addBtn.disabled = true;
+
+  const { data: { session } } = await db.auth.getSession();
+  const payload = { description, amount, category, occurred_on, type: selectedType };
+
+  const { error } = editingId
+    ? await db.from('transactions').update(payload).eq('id', editingId)
+    : await db.from('transactions').insert({ ...payload, user_id: session.user.id });
+
+  addBtn.disabled = false;
+  if(error){
+    formMsg.textContent = 'Não foi possível salvar o lançamento. Tente novamente.';
+    formMsg.style.display = 'block';
+    return;
+  }
+  const wasEditing = !!editingId;
+  cancelEdit();
+  showToast(wasEditing ? 'Lançamento atualizado.' : 'Lançamento salvo.');
+  loadTransactions();
+});
+
+/* ---------- carregar e renderizar lançamentos ---------- */
+async function loadTransactions(){
+  const ledger = document.getElementById('ledger');
+  const { data, error } = await db
+    .from('transactions')
+    .select('*')
+    .order('occurred_on', { ascending:false })
+    .order('created_at', { ascending:false });
+
+  if(error){
+    ledger.innerHTML = '<div class="empty-state">Não foi possível carregar os lançamentos. Verifique sua conexão.</div>';
+    return;
+  }
+  allTx = data || [];
+  populateMonthFilter();
+  renderAll();
+}
+
+/* ---------- orçamento por categoria ---------- */
+async function loadBudgets(){
+  const { data, error } = await db.from('budgets').select('*');
+  allBudgets = {};
+  if(!error){
+    (data || []).forEach(b => { allBudgets[b.category] = Number(b.monthly_limit); });
+  }
+  renderBudgetForm();
+  renderAll();
+}
+
+function renderBudgetForm(){
+  const wrap = document.getElementById('budget-form');
+  wrap.innerHTML = BUDGET_CATEGORIES.map(cat => `
+    <div class="budget-row">
+      <label>${cat}</label>
+      <input type="number" data-cat="${cat}" step="0.01" min="0" placeholder="Sem limite" value="${allBudgets[cat] ? allBudgets[cat] : ''}">
+    </div>
+  `).join('');
+}
+
+document.getElementById('budget-save-btn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('budget-save-btn');
+  const msg = document.getElementById('budget-msg');
+  const { data: { session } } = await db.auth.getSession();
+  const rows = [];
+  document.querySelectorAll('#budget-form input[data-cat]').forEach(input=>{
+    const val = parseFloat(input.value);
+    if(val && val > 0){
+      rows.push({ user_id: session.user.id, category: input.dataset.cat, monthly_limit: val });
+    }
+  });
+
+  btn.disabled = true;
+  const { error } = rows.length
+    ? await db.from('budgets').upsert(rows, { onConflict: 'user_id,category' })
+    : { error: null };
+  btn.disabled = false;
+
+  if(error){
+    msg.textContent = 'Não foi possível salvar o orçamento. Tente novamente.';
+    msg.style.color = 'var(--brick)';
+    msg.style.display = 'block';
+    return;
+  }
+  msg.textContent = 'Orçamento salvo.';
+  msg.style.color = 'var(--pine)';
+  msg.style.display = 'block';
+  setTimeout(()=>{ msg.style.display = 'none'; }, 2500);
+  loadBudgets();
+});
+
+function monthKey(date){
+  return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0');
+}
+
+function populateMonthFilter(){
+  const sel = document.getElementById('filter-month');
+  const months = Array.from(new Set(allTx.map(t=>t.occurred_on.slice(0,7)))).sort().reverse();
+  const currentMonth = monthKey(new Date());
+  if(!months.includes(currentMonth)) months.unshift(currentMonth);
+  const prevValue = sel.value;
+  months.sort().reverse();
+  sel.innerHTML = months.map(m=>`<option value="${m}">${formatMonthLabel(m)}</option>`).join('');
+  sel.value = months.includes(prevValue) ? prevValue : currentMonth;
+}
+
+function ensureMonthOption(m){
+  const sel = document.getElementById('filter-month');
+  if(![...sel.options].some(o=>o.value === m)){
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = formatMonthLabel(m);
+    sel.appendChild(opt);
+    const sorted = [...sel.options].sort((a,b)=> a.value < b.value ? 1 : -1);
+    sel.innerHTML = '';
+    sorted.forEach(o=>sel.appendChild(o));
+  }
+}
+
+function shiftMonth(delta){
+  const sel = document.getElementById('filter-month');
+  const [y,m] = sel.value.split('-').map(Number);
+  const d = new Date(y, (m-1)+delta, 1);
+  const newVal = monthKey(d);
+  ensureMonthOption(newVal);
+  sel.value = newVal;
+  renderAll();
+}
+
+function formatMonthLabel(m){
+  const [y,mo] = m.split('-');
+  const d = new Date(Number(y), Number(mo)-1, 1);
+  return d.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+}
+
+document.getElementById('filter-month').addEventListener('change', renderAll);
+document.getElementById('filter-category').addEventListener('change', renderAll);
+document.getElementById('prev-month').addEventListener('click', ()=>shiftMonth(-1));
+document.getElementById('next-month').addEventListener('click', ()=>shiftMonth(1));
+
+function renderAll(){
+  const month = document.getElementById('filter-month').value;
+  const category = document.getElementById('filter-category').value;
+
+  const monthTx = allTx.filter(t=>t.occurred_on.slice(0,7) === month);
+  const filteredTx = monthTx.filter(t=> !category || t.category === category);
+
+  renderSummary(monthTx);
+  renderCategoryBars(monthTx);
+  renderLedger(filteredTx);
+}
+
+function renderSummary(monthTx){
+  const receita = monthTx.filter(t=>t.type==='receita').reduce((s,t)=>s+Number(t.amount),0);
+  const despesa = monthTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0);
+  document.getElementById('summary-receita').textContent = currency.format(receita);
+  document.getElementById('summary-despesa').textContent = currency.format(despesa);
+  document.getElementById('summary-saldo').textContent = currency.format(receita - despesa);
+}
+
+function renderCategoryBars(monthTx){
+  const wrap = document.getElementById('category-bars');
+  const alertsWrap = document.getElementById('budget-alerts');
+  const despesas = monthTx.filter(t=>t.type==='despesa');
+  if(despesas.length === 0){
+    wrap.innerHTML = '<div class="empty-state">Sem despesas neste mês ainda.</div>';
+    alertsWrap.innerHTML = '';
+    return;
+  }
+  const totals = {};
+  despesas.forEach(t=>{ totals[t.category] = (totals[t.category]||0) + Number(t.amount); });
+  const maxTotal = Math.max(...Object.values(totals));
+  const rows = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+
+  const overBudget = [];
+  wrap.innerHTML = rows.map(([cat,val])=>{
+    const limit = allBudgets[cat];
+    let barClass = '';
+    let widthBase = maxTotal;
+    let limitLabel = '';
+    if(limit){
+      const pct = val / limit;
+      if(pct >= 1){ barClass = 'over'; overBudget.push({cat, val, limit}); }
+      else if(pct >= 0.8){ barClass = 'warning'; }
+      else{ barClass = 'ok'; }
+      widthBase = Math.max(limit, val);
+      limitLabel = `<span class="cat-limit">de ${currency.format(limit)} orçados</span>`;
+    }
+    const widthPct = Math.min((val/widthBase)*100, 100).toFixed(0);
+    return `
+      <div class="cat-row">
+        <div class="cat-name">${cat}</div>
+        <div class="bar-track"><div class="bar-fill ${barClass}" style="width:${widthPct}%"></div></div>
+        <div class="cat-amt mono">${currency.format(val)}${limitLabel}</div>
+      </div>
+    `;
+  }).join('');
+
+  alertsWrap.innerHTML = overBudget.length === 0 ? '' : `
+    <div class="alert-banner">
+      <div>
+        <strong>Orçamento ultrapassado</strong>
+        ${overBudget.map(o=>`${o.cat}: ${currency.format(o.val)} de ${currency.format(o.limit)} orçados`).join('<br>')}
+      </div>
+    </div>
+  `;
+}
+
+function renderLedger(list){
+  const ledger = document.getElementById('ledger');
+  if(list.length === 0){
+    ledger.innerHTML = '<div class="empty-state">Nenhum lançamento neste filtro. Registre uma despesa ou receita acima.</div>';
+    return;
+  }
+  ledger.innerHTML = list.map(t=>{
+    const dateLabel = new Date(t.occurred_on + 'T00:00:00').toLocaleDateString('pt-BR');
+    const amtLabel = t.type === 'despesa'
+      ? `(${currency.format(t.amount)})`
+      : currency.format(t.amount);
+    return `
+      <div class="tx-row" data-id="${t.id}">
+        <div class="tx-info">
+          <div class="tx-desc">${escapeHtml(t.description)}</div>
+          <div class="tx-meta">${t.category} · ${dateLabel}</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amt mono ${t.type}">${amtLabel}</div>
+          <button class="tx-edit" title="Editar lançamento" data-id="${t.id}">✎</button>
+          <button class="tx-del" title="Excluir lançamento" data-id="${t.id}">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  ledger.querySelectorAll('.tx-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>startEdit(btn.dataset.id));
+  });
+  ledger.querySelectorAll('.tx-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteTx(btn.dataset.id));
+  });
+}
+
+async function deleteTx(id){
+  if(!confirm('Excluir este lançamento?')) return;
+  const { error } = await db.from('transactions').delete().eq('id', id);
+  if(error){ alert('Não foi possível excluir. Tente novamente.'); return; }
+  if(editingId === id) cancelEdit();
+  allTx = allTx.filter(t=>t.id !== id);
+  renderAll();
+  showToast('Lançamento excluído.');
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ---------- start ---------- */
+initAuthWatcher();
+</script>
+</body>
+</html>
