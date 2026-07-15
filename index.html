@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Caderneta — controle de gastos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --charcoal:#211F1A;
+    --charcoal-card:#1C1A16;
+    --gold:#C6A15B;
+    --gold-deep:#A9823F;
+    --gold-soft:#F1E6CC;
+    --neutral-bar:#DCCFA8;
+    --amber:#B8752E;
+    --amber-text:#7A4E1D;
+    --rose:#8E4438;
+    --rose-text:#7A382D;
+    --paper:#F8F3E9;
+    --card:#FFFFFF;
+    --ink:#2A2721;
+    --ink-soft:#867A66;
+    --line:#EAE1CC;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace; font-variant-numeric: tabular-nums;}
+  .hidden{display:none !important;}
+  button{font-family:inherit; cursor:pointer;}
+  input,select{font-family:inherit;}
+  .field input:focus, .field select:focus, button:focus-visible{
+    outline:2px solid var(--ink);
+    outline-offset:1px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+
+  /* ---------- AUTH SCREEN ---------- */
+  #auth-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:radial-gradient(circle at 25% 20%, #2A271F 0%, var(--charcoal-card) 65%);
+    padding:24px;
+  }
+  .auth-card{
+    width:100%;
+    max-width:380px;
+    background:var(--card);
+    border-radius:20px;
+    padding:38px 28px 30px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.3);
+  }
+  .auth-card .kicker{
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    font-size:11px;
+    color:var(--gold-deep);
+    font-weight:600;
+    margin-bottom:14px;
+  }
+  .auth-card h1{
+    font-weight:700;
+    font-size:30px;
+    margin:0 0 20px;
+    color:var(--ink);
+  }
+  .tabs{
+    display:flex;
+    border-bottom:1px solid var(--line);
+    margin-bottom:22px;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:10px 0;
+    background:none;
+    border:none;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink-soft);
+    border-bottom:2px solid transparent;
+    margin-bottom:-1px;
+  }
+  .tab.active{
+    color:var(--ink);
+    border-bottom:2px solid var(--gold);
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    font-size:15px;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .btn-primary{
+    width:100%;
+    padding:13px;
+    background:var(--gold);
+    color:var(--ink);
+    border:none;
+    border-radius:12px;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.02em;
+    margin-top:6px;
+  }
+  .btn-primary:disabled{opacity:0.6; cursor:default;}
+  .auth-msg{
+    font-size:13px;
+    margin-top:14px;
+    padding:10px 12px;
+    border-radius:10px;
+    display:none;
+  }
+  .auth-msg.error{ display:block; background:#F5E6E1; color:var(--rose-text); }
+  .auth-msg.ok{ display:block; background:var(--gold-soft); color:var(--gold-deep); }
+  .setup-hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:20px;
+    line-height:1.5;
+    border-top:1px dashed var(--line);
+    padding-top:14px;
+    display:none;
+  }
+
+  /* ---------- APP SHELL ---------- */
+  main{
+    max-width:520px;
+    margin:0 auto;
+    padding-bottom:110px;
+  }
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 16px 2px;
+    max-width:520px;
+    margin:0 auto;
+  }
+  .topbar .brand{font-weight:700; font-size:15px; color:var(--ink);}
+  #signout-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:12px;
+  }
+
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    padding:20px;
+    margin:0 16px 16px;
+    box-shadow:0 1px 3px rgba(33,27,61,0.06);
+  }
+  .card h2{font-size:16px; margin:0 0 14px;}
+  .card .hint{font-size:12.5px; color:var(--ink-soft); margin:-8px 0 16px;}
+
+  /* ---------- HERO (Resumo) ---------- */
+  .hero{
+    background:var(--charcoal-card);
+    border-radius:20px;
+    padding:22px 20px 18px;
+    color:#fff;
+    margin:8px 16px 16px;
+  }
+  .hero-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+  .hero-greeting{font-size:14px; opacity:0.9; font-weight:500;}
+  .hero-toggle{
+    background:rgba(255,255,255,0.12);
+    border:none;
+    color:#EFE7D4;
+    font-size:11px;
+    padding:6px 12px;
+    border-radius:20px;
+  }
+  .hero-balance-label{font-size:12px; opacity:0.75; margin-bottom:4px;}
+  .hero-balance{font-size:32px; font-weight:700; margin-bottom:18px; color:var(--gold);}
+  .hero-pills{display:flex; gap:10px; margin-bottom:16px;}
+  .hero-pill{flex:1; background:rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px; min-width:0;}
+  .hero-pill .pill-label{font-size:11px; opacity:0.75;}
+  .hero-pill .pill-value{font-size:16px; font-weight:600; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .hero-projection{
+    display:flex; justify-content:space-between; align-items:center;
+    border-top:1px solid rgba(255,255,255,0.14);
+    padding-top:14px; font-size:13px; opacity:0.9;
+  }
+  .hero-projection .value{font-weight:700; color:var(--gold); opacity:1;}
+
+  /* ---------- HEALTH CARD ---------- */
+  .health-card{display:flex; gap:16px; align-items:center;}
+  .health-gauge{position:relative; width:84px; height:84px; flex-shrink:0;}
+  .health-gauge svg{transform:rotate(-90deg);}
+  .health-score-num{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .health-score-num .num{font-size:21px; font-weight:700; color:var(--ink);}
+  .health-score-num .of{font-size:9px; color:var(--ink-soft);}
+  .health-text{min-width:0;}
+  .health-text .title-row{display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;}
+  .health-text h3{font-size:15px; margin:0;}
+  .health-badge{font-size:11px; padding:2px 9px; border-radius:20px; font-weight:600;}
+  .health-text p{font-size:12.5px; color:var(--ink-soft); margin:0; line-height:1.45;}
+
+  /* ---------- INSIGHT CARD ---------- */
+  .insight-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+  .insight-badge{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px;}
+  .insight-badge.ok{background:var(--gold-soft); color:var(--gold-deep);}
+  .insight-badge.warn{background:#F5E6E1; color:var(--rose-text);}
+  .insight-month{font-size:12px; color:var(--ink-soft);}
+  .insight-headline{font-size:16.5px; font-weight:600; margin:0 0 14px; line-height:1.4;}
+  .insight-bar-row{display:grid; grid-template-columns:52px 1fr 84px; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;}
+  .insight-track{background:var(--paper); border-radius:4px; height:8px; overflow:hidden;}
+  .insight-fill{height:100%; border-radius:4px;}
+  .insight-fill.receita{background:var(--gold);}
+  .insight-fill.despesa{background:var(--rose);}
+  .insight-compare{font-size:12px; color:var(--ink-soft); margin-top:8px;}
+
+  /* ---------- RESOLVE CARD ---------- */
+  .resolve-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .resolve-item:last-child{border-bottom:none;}
+  .resolve-item .name{font-weight:600; color:var(--ink);}
+  .resolve-item .detail{color:var(--rose-text); font-size:12px; margin-top:2px;}
+  .resolve-empty{color:var(--ink-soft); font-size:13px; text-align:center; padding:10px 0;}
+  .resolve-link{color:var(--ink); font-size:12.5px; font-weight:600; background:none; border:1px solid var(--line); padding:6px 12px; border-radius:20px; flex-shrink:0;}
+
+  /* ---------- FORM (Lançamentos) ---------- */
+  .panel-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .panel-header h2{margin:0;}
+  .cancel-edit-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:12px;
+    display:none;
+  }
+  .form-grid{display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; align-items:end;}
+  .form-grid .field{margin-bottom:0;}
+  .type-toggle{display:flex; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .type-toggle button{
+    flex:1; padding:11px 0; background:var(--paper); border:none;
+    font-size:13px; font-weight:600; color:var(--ink-soft);
+    transition:background-color .2s ease, color .2s ease;
+  }
+  .type-toggle button.active[data-type="despesa"]{background:var(--rose); color:#fff;}
+  .type-toggle button.active[data-type="receita"]{background:var(--gold); color:var(--ink);}
+  .form-row2{display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; margin-top:12px; align-items:end;}
+  #add-btn{
+    background:var(--gold);
+    color:var(--ink); border:none; border-radius:12px; padding:12px 20px;
+    font-weight:700; font-size:14px; white-space:nowrap;
+  }
+  #add-btn:disabled{opacity:0.6;}
+  #form-msg{font-size:13px; color:var(--rose-text); margin-top:10px; display:none;}
+
+  .filters{display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap;}
+  .filters select{
+    padding:9px 10px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:13px; color:var(--ink);
+  }
+  .month-nav{display:flex; align-items:center; gap:6px;}
+  .month-nav button{
+    background:var(--paper); border:1px solid var(--line); color:var(--ink);
+    width:32px; height:32px; border-radius:10px; font-size:15px; line-height:1;
+  }
+
+  .ledger{border-top:2px dashed var(--line); padding-top:4px;}
+  .tx-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line);}
+  .tx-info{display:flex; flex-direction:column; gap:2px; min-width:0;}
+  .tx-desc{font-size:14.5px; font-weight:600; color:var(--ink);}
+  .tx-meta{font-size:12px; color:var(--ink-soft);}
+  .tx-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .tx-amt{font-size:15px; font-weight:600;}
+  .tx-amt.despesa{color:var(--rose-text);}
+  .tx-amt.receita{color:var(--gold-deep);}
+  .tx-edit, .tx-del{background:none; border:none; color:var(--ink-soft); font-size:15px; line-height:1; padding:4px 6px; border-radius:8px;}
+  .tx-edit:hover{color:var(--ink); background:var(--paper);}
+  .tx-del:hover{color:var(--rose-text); background:var(--paper);}
+  .empty-state{text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:14px;}
+
+  /* ---------- ORÇAMENTO ---------- */
+  .budget-form{display:flex; flex-direction:column; gap:10px;}
+  .budget-row{display:grid; grid-template-columns:1fr 130px; align-items:center; gap:12px;}
+  .budget-row label{font-size:13px; color:var(--ink-soft);}
+  .budget-row input{
+    padding:9px 10px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:14px; color:var(--ink); text-align:right; width:100%;
+  }
+  #budget-save-btn{
+    margin-top:14px;
+    background:var(--gold);
+    color:var(--ink); border:none; border-radius:12px; padding:11px 20px;
+    font-weight:700; font-size:13.5px;
+  }
+  #budget-msg{font-size:13px; margin-top:8px; display:none;}
+
+  .category-bars{display:flex; flex-direction:column; gap:12px;}
+  .cat-row{display:grid; grid-template-columns:100px 1fr 92px; align-items:center; gap:10px;}
+  .cat-row .cat-name{font-size:13px; color:var(--ink-soft);}
+  .cat-row .bar-track{background:var(--paper); border-radius:4px; height:8px; overflow:hidden;}
+  .cat-row .bar-fill{background:var(--neutral-bar); height:100%; border-radius:4px;}
+  .cat-row .bar-fill.ok{background:var(--gold);}
+  .cat-row .bar-fill.warning{background:var(--amber);}
+  .cat-row .bar-fill.over{background:var(--rose);}
+  .cat-row .cat-amt{font-size:13px; text-align:right;}
+  .cat-row .cat-limit{font-size:11px; color:var(--ink-soft); display:block; margin-top:2px; font-weight:400;}
+
+  /* ---------- TAB BAR ---------- */
+  .tabbar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--card);
+    display:flex;
+    box-shadow:0 -2px 14px rgba(33,27,61,0.1);
+    padding:8px 8px calc(6px + env(safe-area-inset-bottom));
+    z-index:40;
+  }
+  .tabbar-inner{display:flex; max-width:520px; margin:0 auto; width:100%;}
+  .tabbar button{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    background:none; border:none; color:var(--ink-soft); font-size:10.5px; padding:6px 0;
+    border-radius:10px;
+  }
+  .tabbar button svg{stroke:currentColor;}
+  .tabbar button.active{color:var(--gold-deep);}
+
+  .fab{
+    position:fixed; right:calc(50% - 260px + 18px); bottom:80px;
+    width:52px; height:52px; border-radius:50%;
+    background:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    border:none; box-shadow:0 8px 20px rgba(28,26,22,0.35);
+    z-index:41;
+  }
+  @media (max-width:556px){
+    .fab{right:18px;}
+  }
+
+  @media (max-width:640px){
+    .form-grid{grid-template-columns:1fr;}
+    .form-row2{grid-template-columns:1fr 1fr;}
+    #add-btn{grid-column:1 / -1;}
+    .tx-row{align-items:flex-start; flex-direction:column;}
+    .tx-right{width:100%; justify-content:space-between;}
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(12px);
+    background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px;
+    font-size:13.5px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease; z-index:80;
+    box-shadow:0 10px 24px rgba(0,0,0,0.25);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="kicker">Controle de gastos pessoais</div>
+    <h1>Caderneta</h1>
+    <div class="tabs">
+      <button class="tab active" data-tab="login">Entrar</button>
+      <button class="tab" data-tab="signup">Criar conta</button>
+    </div>
+
+    <form id="auth-form">
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Senha</label>
+        <input type="password" id="password" autocomplete="current-password" required minlength="6">
+      </div>
+      <button type="submit" class="btn-primary" id="auth-submit">Entrar</button>
+    </form>
+    <div class="auth-msg" id="auth-msg"></div>
+
+    <div class="setup-hint" id="config-hint">
+      Configuração pendente: abra este arquivo e preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no início do script, com os dados do seu projeto Supabase.
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="app-screen" class="hidden">
+  <div class="topbar">
+    <div class="brand">Caderneta</div>
+    <button id="signout-btn">Sair</button>
+  </div>
+
+  <main>
+    <!-- ===== RESUMO ===== -->
+    <section class="tab-content active" id="tab-resumo">
+      <div class="hero">
+        <div class="hero-top">
+          <div class="hero-greeting" id="hero-greeting">Olá</div>
+          <button class="hero-toggle" id="toggle-saldo">Ocultar saldo</button>
+        </div>
+        <div class="hero-balance-label">Saldo disponível</div>
+        <div class="hero-balance display" id="hero-balance">R$ 0,00</div>
+        <div class="hero-pills">
+          <div class="hero-pill">
+            <div class="pill-label">↑ Receitas (mês)</div>
+            <div class="pill-value mono" id="hero-receita">R$ 0,00</div>
+          </div>
+          <div class="hero-pill">
+            <div class="pill-label">↓ Despesas (mês)</div>
+            <div class="pill-value mono" id="hero-despesa">R$ 0,00</div>
+          </div>
+        </div>
+        <div class="hero-projection">
+          <span title="Estimativa com base no ritmo de gastos deste mês">Previsto fim do mês</span>
+          <span class="value mono" id="hero-projection">R$ 0,00</span>
+        </div>
+      </div>
+
+      <div class="card health-card">
+        <div class="health-gauge">
+          <svg width="84" height="84" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="40" fill="none" stroke="var(--line)" stroke-width="10"/>
+            <circle id="health-arc" cx="48" cy="48" r="40" fill="none" stroke="var(--gold)" stroke-width="10" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+          </svg>
+          <div class="health-score-num">
+            <span class="num" id="health-score-num">0</span>
+            <span class="of">de 100</span>
+          </div>
+        </div>
+        <div class="health-text">
+          <div class="title-row">
+            <h3>Saúde financeira</h3>
+            <span class="health-badge" id="health-label">—</span>
+          </div>
+          <p id="health-tip">Carregando…</p>
+        </div>
+      </div>
+
+      <div class="card insight-card">
+        <div class="insight-top">
+          <span class="insight-badge" id="insight-badge">—</span>
+          <span class="insight-month" id="insight-month"></span>
+        </div>
+        <h3 class="insight-headline" id="insight-headline">—</h3>
+        <div class="insight-bars">
+          <div class="insight-bar-row">
+            <span>Recebeu</span>
+            <div class="insight-track"><div class="insight-fill receita" id="insight-bar-receita" style="width:0%"></div></div>
+            <span class="mono" id="insight-val-receita">R$ 0,00</span>
+          </div>
+          <div class="insight-bar-row">
+            <span>Gastou</span>
+            <div class="insight-track"><div class="insight-fill despesa" id="insight-bar-despesa" style="width:0%"></div></div>
+            <span class="mono" id="insight-val-despesa">R$ 0,00</span>
+          </div>
+        </div>
+        <div class="insight-compare" id="insight-compare"></div>
+      </div>
+
+      <div class="card">
+        <h2>Para resolver</h2>
+        <div id="resolve-card">
+          <div class="resolve-empty">Carregando…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LANÇAMENTOS ===== -->
+    <section class="tab-content" id="tab-lancamentos">
+      <div class="card">
+        <div class="panel-header">
+          <h2 id="tx-form-title">Novo lançamento</h2>
+          <button type="button" class="cancel-edit-btn" id="cancel-edit-btn">Cancelar edição</button>
+        </div>
+        <form id="tx-form">
+          <div class="form-grid">
+            <div class="field">
+              <label for="tx-desc">Descrição</label>
+              <input type="text" id="tx-desc" placeholder="Ex.: Supermercado" required>
+            </div>
+            <div class="field">
+              <label for="tx-amount">Valor (R$)</label>
+              <input type="number" id="tx-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required>
+            </div>
+            <div class="field">
+              <label>Tipo</label>
+              <div class="type-toggle">
+                <button type="button" class="active" data-type="despesa">Despesa</button>
+                <button type="button" data-type="receita">Receita</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row2">
+            <div class="field">
+              <label for="tx-category">Categoria</label>
+              <select id="tx-category">
+                <option>Alimentação</option>
+                <option>Transporte</option>
+                <option>Moradia</option>
+                <option>Saúde</option>
+                <option>Lazer</option>
+                <option>Educação</option>
+                <option>Salário</option>
+                <option>Outros</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="tx-date">Data</label>
+              <input type="date" id="tx-date" required>
+            </div>
+            <div></div>
+            <button type="submit" id="add-btn">Lançar</button>
+          </div>
+        </form>
+        <div id="form-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Lançamentos</h2>
+        <div class="filters">
+          <div class="month-nav">
+            <button type="button" id="prev-month" aria-label="Mês anterior">‹</button>
+            <select id="filter-month"></select>
+            <button type="button" id="next-month" aria-label="Próximo mês">›</button>
+          </div>
+          <select id="filter-category">
+            <option value="">Todas as categorias</option>
+            <option>Alimentação</option>
+            <option>Transporte</option>
+            <option>Moradia</option>
+            <option>Saúde</option>
+            <option>Lazer</option>
+            <option>Educação</option>
+            <option>Salário</option>
+            <option>Outros</option>
+          </select>
+        </div>
+        <div class="ledger" id="ledger">
+          <div class="empty-state">Carregando lançamentos…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ORÇAMENTO ===== -->
+    <section class="tab-content" id="tab-orcamento">
+      <div class="card">
+        <h2>Orçamento por categoria</h2>
+        <p class="hint">Defina um limite mensal para cada categoria. Deixe em branco para não acompanhar.</p>
+        <div class="budget-form" id="budget-form"></div>
+        <button type="button" id="budget-save-btn">Salvar orçamento</button>
+        <div id="budget-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Gastos por categoria (mês atual)</h2>
+        <div class="category-bars" id="category-bars">
+          <div class="empty-state">Sem despesas neste mês ainda.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="fab-add" aria-label="Novo lançamento">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#2A2721" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button data-tab="resumo" class="active">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+        Resumo
+      </button>
+      <button data-tab="lancamentos">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Lançamentos
+      </button>
+      <button data-tab="orcamento">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>
+        </svg>
+        Orçamento
+      </button>
+    </div>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — dados do projeto Supabase
+   (Painel do Supabase → Project Settings → API)
+   ============================================================ */
+const SUPABASE_URL = 'https://nlkothnplektftekcdir.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_AFHfmUnR19W8zODB8pZ6Rw_YB4JH1hQ';
+/* ============================================================ */
+
+const isConfigured = !SUPABASE_URL.startsWith('COLE_AQUI') && !SUPABASE_ANON_KEY.startsWith('COLE_AQUI');
+let db = null;
+if (isConfigured) {
+  const { createClient } = supabase;
+  db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  document.getElementById('config-hint').style.display = 'block';
+}
+
+const currency = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+const CATEGORIES = ['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Salário','Outros'];
+const BUDGET_CATEGORIES = CATEGORIES.filter(c => c !== 'Salário');
+const CATEGORY_PLACEHOLDERS = {
+  'Alimentação': 'Ex.: Supermercado',
+  'Transporte': 'Ex.: Uber, gasolina',
+  'Moradia': 'Ex.: Aluguel, conta de luz',
+  'Saúde': 'Ex.: Farmácia, consulta',
+  'Lazer': 'Ex.: Cinema, streaming',
+  'Educação': 'Ex.: Curso, material',
+  'Salário': 'Ex.: Salário do mês',
+  'Outros': 'Ex.: Diversos'
+};
+
+let currentTab = 'login';
+let allTx = [];
+let allBudgets = {};
+let selectedType = 'despesa';
+let editingId = null;
+let saldoHidden = false;
+let currentUserEmail = '';
+
+function showToast(text){
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(()=> toast.classList.remove('show'), 2600);
+}
+
+/* ---------- referências ---------- */
+const authScreen = document.getElementById('auth-screen');
+const appScreen = document.getElementById('app-screen');
+const authForm = document.getElementById('auth-form');
+const authMsg = document.getElementById('auth-msg');
+const authSubmit = document.getElementById('auth-submit');
+
+/* ---------- tabs de autenticação ---------- */
+document.querySelectorAll('.tabs .tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    authSubmit.textContent = currentTab === 'login' ? 'Entrar' : 'Criar conta';
+    hideAuthMsg();
+  });
+});
+
+function showAuthMsg(text, type){
+  authMsg.textContent = text;
+  authMsg.className = 'auth-msg ' + type;
+}
+function hideAuthMsg(){
+  authMsg.className = 'auth-msg';
+}
+
+authForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!isConfigured){
+    showAuthMsg('Configure SUPABASE_URL e SUPABASE_ANON_KEY antes de continuar.', 'error');
+    return;
+  }
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  authSubmit.disabled = true;
+  hideAuthMsg();
+  try{
+    if(currentTab === 'login'){
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    } else {
+      const { data, error } = await db.auth.signUp({ email, password });
+      if(error) throw error;
+      if(data.user && !data.session){
+        showAuthMsg('Conta criada. Verifique seu e-mail para confirmar antes de entrar.', 'ok');
+        authSubmit.disabled = false;
+        return;
+      }
+    }
+  }catch(err){
+    showAuthMsg(traduzErro(err.message), 'error');
+  }
+  authSubmit.disabled = false;
+});
+
+function traduzErro(msg){
+  if(!msg) return 'Não foi possível concluir. Tente novamente.';
+  if(msg.includes('Invalid login credentials')) return 'E-mail ou senha inválidos.';
+  if(msg.includes('User already registered')) return 'Este e-mail já tem uma conta. Tente entrar.';
+  if(msg.includes('Password should be')) return 'A senha precisa ter pelo menos 6 caracteres.';
+  return msg;
+}
+
+document.getElementById('signout-btn').addEventListener('click', async ()=>{
+  await db.auth.signOut();
+});
+
+/* ---------- alternância de telas conforme sessão ---------- */
+async function initAuthWatcher(){
+  if(!isConfigured) return;
+  const { data: { session } } = await db.auth.getSession();
+  handleSession(session);
+  db.auth.onAuthStateChange((_event, session)=>{
+    handleSession(session);
+  });
+}
+
+function handleSession(session){
+  if(session && session.user){
+    authScreen.classList.add('hidden');
+    appScreen.classList.remove('hidden');
+    currentUserEmail = session.user.email;
+    loadTransactions();
+    loadBudgets();
+  } else {
+    appScreen.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+  }
+}
+
+/* ---------- navegação por abas ---------- */
+function setTab(name){
+  document.querySelectorAll('.tab-content').forEach(el=> el.classList.toggle('active', el.id === 'tab-'+name));
+  document.querySelectorAll('.tabbar button[data-tab]').forEach(b=> b.classList.toggle('active', b.dataset.tab === name));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.tabbar button[data-tab]').forEach(b=>{
+  b.addEventListener('click', ()=> setTab(b.dataset.tab));
+});
+document.getElementById('fab-add').addEventListener('click', ()=>{
+  cancelEdit();
+  setTab('lancamentos');
+  setTimeout(()=>{ document.getElementById('tx-desc').focus(); }, 150);
+});
+document.getElementById('toggle-saldo').addEventListener('click', ()=>{
+  saldoHidden = !saldoHidden;
+  renderHero();
+});
+
+/* ---------- formulário de lançamento ---------- */
+document.querySelectorAll('.type-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedType = btn.dataset.type;
+  });
+});
+
+document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
+
+const txForm = document.getElementById('tx-form');
+const formMsg = document.getElementById('form-msg');
+const addBtn = document.getElementById('add-btn');
+const txCategorySelect = document.getElementById('tx-category');
+const txDescInput = document.getElementById('tx-desc');
+const txFormTitle = document.getElementById('tx-form-title');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+txCategorySelect.addEventListener('change', ()=>{
+  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+});
+txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+
+function startEdit(id){
+  const t = allTx.find(tx=>tx.id === id);
+  if(!t) return;
+  editingId = id;
+  document.getElementById('tx-desc').value = t.description;
+  document.getElementById('tx-amount').value = t.amount;
+  document.getElementById('tx-category').value = t.category;
+  document.getElementById('tx-date').value = t.occurred_on;
+  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[t.category] || 'Descrição';
+  document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.type-toggle button[data-type="${t.type}"]`).classList.add('active');
+  selectedType = t.type;
+  txFormTitle.textContent = 'Editar lançamento';
+  addBtn.textContent = 'Salvar alterações';
+  cancelEditBtn.style.display = 'inline-block';
+  setTab('lancamentos');
+  txForm.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function cancelEdit(){
+  editingId = null;
+  txForm.reset();
+  document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
+  document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.type-toggle button[data-type="despesa"]').classList.add('active');
+  selectedType = 'despesa';
+  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+  txFormTitle.textContent = 'Novo lançamento';
+  addBtn.textContent = 'Lançar';
+  cancelEditBtn.style.display = 'none';
+  formMsg.style.display = 'none';
+}
+
+cancelEditBtn.addEventListener('click', cancelEdit);
+
+txForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const description = document.getElementById('tx-desc').value.trim();
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const category = document.getElementById('tx-category').value;
+  const occurred_on = document.getElementById('tx-date').value;
+
+  if(!description || !amount || amount <= 0){
+    formMsg.textContent = 'Preencha a descrição e um valor maior que zero.';
+    formMsg.style.display = 'block';
+    return;
+  }
+  formMsg.style.display = 'none';
+  addBtn.disabled = true;
+
+  const { data: { session } } = await db.auth.getSession();
+  const payload = { description, amount, category, occurred_on, type: selectedType };
+
+  const { error } = editingId
+    ? await db.from('transactions').update(payload).eq('id', editingId)
+    : await db.from('transactions').insert({ ...payload, user_id: session.user.id });
+
+  addBtn.disabled = false;
+  if(error){
+    formMsg.textContent = 'Não foi possível salvar o lançamento. Tente novamente.';
+    formMsg.style.display = 'block';
+    return;
+  }
+  const wasEditing = !!editingId;
+  cancelEdit();
+  showToast(wasEditing ? 'Lançamento atualizado.' : 'Lançamento salvo.');
+  loadTransactions();
+});
+
+/* ---------- carregar lançamentos ---------- */
+async function loadTransactions(){
+  const ledger = document.getElementById('ledger');
+  const { data, error } = await db
+    .from('transactions')
+    .select('*')
+    .order('occurred_on', { ascending:false })
+    .order('created_at', { ascending:false });
+
+  if(error){
+    ledger.innerHTML = '<div class="empty-state">Não foi possível carregar os lançamentos. Verifique sua conexão.</div>';
+    return;
+  }
+  allTx = data || [];
+  populateMonthFilter();
+  renderAll();
+}
+
+/* ---------- orçamento por categoria ---------- */
+async function loadBudgets(){
+  const { data, error } = await db.from('budgets').select('*');
+  allBudgets = {};
+  if(!error){
+    (data || []).forEach(b => { allBudgets[b.category] = Number(b.monthly_limit); });
+  }
+  renderBudgetForm();
+  renderAll();
+}
+
+function renderBudgetForm(){
+  const wrap = document.getElementById('budget-form');
+  wrap.innerHTML = BUDGET_CATEGORIES.map(cat => `
+    <div class="budget-row">
+      <label>${cat}</label>
+      <input type="number" data-cat="${cat}" step="0.01" min="0" placeholder="Sem limite" value="${allBudgets[cat] ? allBudgets[cat] : ''}">
+    </div>
+  `).join('');
+}
+
+document.getElementById('budget-save-btn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('budget-save-btn');
+  const msg = document.getElementById('budget-msg');
+  const { data: { session } } = await db.auth.getSession();
+  const rows = [];
+  document.querySelectorAll('#budget-form input[data-cat]').forEach(input=>{
+    const val = parseFloat(input.value);
+    if(val && val > 0){
+      rows.push({ user_id: session.user.id, category: input.dataset.cat, monthly_limit: val });
+    }
+  });
+
+  btn.disabled = true;
+  const { error } = rows.length
+    ? await db.from('budgets').upsert(rows, { onConflict: 'user_id,category' })
+    : { error: null };
+  btn.disabled = false;
+
+  if(error){
+    msg.textContent = 'Não foi possível salvar o orçamento. Tente novamente.';
+    msg.style.color = 'var(--rose-text)';
+    msg.style.display = 'block';
+    return;
+  }
+  msg.textContent = 'Orçamento salvo.';
+  msg.style.color = 'var(--gold-deep)';
+  msg.style.display = 'block';
+  setTimeout(()=>{ msg.style.display = 'none'; }, 2500);
+  showToast('Orçamento salvo.');
+  loadBudgets();
+});
+
+/* ---------- navegação de mês (aba Lançamentos) ---------- */
+function monthKey(date){
+  return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0');
+}
+
+function populateMonthFilter(){
+  const sel = document.getElementById('filter-month');
+  const months = Array.from(new Set(allTx.map(t=>t.occurred_on.slice(0,7))));
+  const currentMonth = monthKey(new Date());
+  if(!months.includes(currentMonth)) months.push(currentMonth);
+  months.sort().reverse();
+  const prevValue = sel.value;
+  sel.innerHTML = months.map(m=>`<option value="${m}">${formatMonthLabel(m)}</option>`).join('');
+  sel.value = months.includes(prevValue) ? prevValue : currentMonth;
+}
+
+function ensureMonthOption(m){
+  const sel = document.getElementById('filter-month');
+  if(![...sel.options].some(o=>o.value === m)){
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = formatMonthLabel(m);
+    sel.appendChild(opt);
+    const sorted = [...sel.options].sort((a,b)=> a.value < b.value ? 1 : -1);
+    sel.innerHTML = '';
+    sorted.forEach(o=>sel.appendChild(o));
+  }
+}
+
+function shiftMonth(delta){
+  const sel = document.getElementById('filter-month');
+  const [y,m] = sel.value.split('-').map(Number);
+  const d = new Date(y, (m-1)+delta, 1);
+  const newVal = monthKey(d);
+  ensureMonthOption(newVal);
+  sel.value = newVal;
+  renderAll();
+}
+
+function formatMonthLabel(m){
+  const [y,mo] = m.split('-');
+  const d = new Date(Number(y), Number(mo)-1, 1);
+  return d.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+}
+
+function monthNameOnly(m){
+  const [y,mo] = m.split('-');
+  const d = new Date(Number(y), Number(mo)-1, 1);
+  return d.toLocaleDateString('pt-BR', { month:'long' });
+}
+
+document.getElementById('filter-month').addEventListener('change', renderAll);
+document.getElementById('filter-category').addEventListener('change', renderAll);
+document.getElementById('prev-month').addEventListener('click', ()=>shiftMonth(-1));
+document.getElementById('next-month').addEventListener('click', ()=>shiftMonth(1));
+
+/* ---------- cálculos derivados ---------- */
+function greetingWord(){
+  const h = new Date().getHours();
+  if(h < 12) return 'Bom dia';
+  if(h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+function firstNameFromEmail(email){
+  if(!email) return '';
+  const local = email.split('@')[0];
+  const namePart = local.split(/[._\-0-9]/).filter(Boolean)[0] || local;
+  return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+}
+
+function computeAllTimeBalance(){
+  return allTx.reduce((s,t)=> s + (t.type==='receita' ? Number(t.amount) : -Number(t.amount)), 0);
+}
+
+function currentMonthTx(){
+  const cmKey = monthKey(new Date());
+  return allTx.filter(t=>t.occurred_on.slice(0,7) === cmKey);
+}
+
+function computeProjection(){
+  const now = new Date();
+  const despesaMes = currentMonthTx().filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0);
+  const diasNoMes = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const diaAtual = now.getDate();
+  const mediaDiaria = despesaMes / diaAtual;
+  const diasRestantes = Math.max(diasNoMes - diaAtual, 0);
+  return computeAllTimeBalance() - (mediaDiaria * diasRestantes);
+}
+
+function currentMonthDespesaTotals(){
+  const totals = {};
+  currentMonthTx().filter(t=>t.type==='despesa').forEach(t=>{
+    totals[t.category] = (totals[t.category]||0) + Number(t.amount);
+  });
+  return totals;
+}
+
+function computeOverBudget(){
+  const totals = currentMonthDespesaTotals();
+  const over = [];
+  Object.keys(totals).forEach(cat=>{
+    const limit = allBudgets[cat];
+    if(limit && totals[cat] > limit) over.push({ cat, val: totals[cat], limit });
+  });
+  return over.sort((a,b)=> (b.val/b.limit) - (a.val/a.limit));
+}
+
+function computeHealthScore(){
+  const mtx = currentMonthTx();
+  const receita = mtx.filter(t=>t.type==='receita').reduce((s,t)=>s+Number(t.amount),0);
+  const despesa = mtx.filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0);
+  let score;
+  if(receita === 0 && despesa === 0){ score = 70; }
+  else if(receita === 0){ score = 35; }
+  else{
+    const savingsRate = (receita - despesa) / receita;
+    score = 55 + savingsRate * 55;
+  }
+  score -= computeOverBudget().length * 8;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function healthMeta(score){
+  if(score >= 80) return { label:'Ótimo', color:'var(--gold)', bg:'#F1E6CC', text:'var(--gold-deep)' };
+  if(score >= 55) return { label:'Bom', color:'var(--gold)', bg:'#F1E6CC', text:'var(--gold-deep)' };
+  if(score >= 30) return { label:'Regular', color:'var(--amber)', bg:'#F3E5D3', text:'var(--amber-text)' };
+  return { label:'Atenção', color:'var(--rose)', bg:'#F5E6E1', text:'var(--rose-text)' };
+}
+
+function healthTip(score, receita){
+  if(receita === 0) return 'Registre suas receitas do mês para calcular sua saúde financeira com mais precisão.';
+  if(score >= 80) return 'Excelente controle das finanças este mês.';
+  if(score >= 55) return 'Bom controle dos gastos. Ainda dá para guardar um pouco mais.';
+  if(score >= 30) return 'Fique de olho: os gastos estão consumindo boa parte da renda.';
+  return 'Os gastos superaram a renda este mês. Reveja as categorias em alerta no orçamento.';
+}
+
+/* ---------- render: pipeline principal ---------- */
+function renderAll(){
+  renderHero();
+  renderHealth();
+  renderInsight();
+  renderResolveCard();
+  renderBudgetBars();
+
+  const month = document.getElementById('filter-month').value;
+  const category = document.getElementById('filter-category').value;
+  const filtered = allTx.filter(t=> t.occurred_on.slice(0,7) === month && (!category || t.category === category));
+  renderLedger(filtered);
+}
+
+function renderHero(){
+  const balance = computeAllTimeBalance();
+  const mtx = currentMonthTx();
+  const receita = mtx.filter(t=>t.type==='receita').reduce((s,t)=>s+Number(t.amount),0);
+  const despesa = mtx.filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0);
+  const projecao = computeProjection();
+
+  document.getElementById('hero-greeting').textContent = `${greetingWord()}, ${firstNameFromEmail(currentUserEmail)}`;
+  document.getElementById('hero-balance').textContent = saldoHidden ? '••••••' : currency.format(balance);
+  document.getElementById('hero-receita').textContent = saldoHidden ? '••••' : currency.format(receita);
+  document.getElementById('hero-despesa').textContent = saldoHidden ? '••••' : currency.format(despesa);
+  document.getElementById('hero-projection').textContent = saldoHidden ? '••••••' : currency.format(projecao);
+  document.getElementById('toggle-saldo').textContent = saldoHidden ? 'Mostrar saldo' : 'Ocultar saldo';
+}
+
+function renderHealth(){
+  const mtx = currentMonthTx();
+  const receita = mtx.filter(t=>t.type==='receita').reduce((s,t)=>s+Number(t.amount),0);
+  const score = computeHealthScore();
+  const meta = healthMeta(score);
+  const circumference = 251.3;
+  const offset = circumference * (1 - score/100);
+
+  const arc = document.getElementById('health-arc');
+  arc.setAttribute('stroke-dashoffset', offset.toFixed(1));
+  arc.setAttribute('stroke', meta.color);
+
+  document.getElementById('health-score-num').textContent = score;
+  const label = document.getElementById('health-label');
+  label.textContent = meta.label;
+  label.style.background = meta.bg;
+  label.style.color = meta.text;
+  document.getElementById('health-tip').textContent = healthTip(score, receita);
+}
+
+function renderInsight(){
+  const cmKey = monthKey(new Date());
+  const mtx = currentMonthTx();
+  const receita = mtx.filter(t=>t.type==='receita').reduce((s,t)=>s+Number(t.amount),0);
+  const despesa = mtx.filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0);
+  const saldoMes = receita - despesa;
+  const maxVal = Math.max(receita, despesa, 1);
+
+  const despesaPorMes = {};
+  allTx.filter(t=>t.type==='despesa').forEach(t=>{
+    const mk = t.occurred_on.slice(0,7);
+    despesaPorMes[mk] = (despesaPorMes[mk]||0) + Number(t.amount);
+  });
+  delete despesaPorMes[cmKey];
+  const mesesAnteriores = Object.keys(despesaPorMes).sort().slice(-6);
+
+  const badgeOk = saldoMes >= 0;
+  const badge = document.getElementById('insight-badge');
+  badge.textContent = badgeOk ? '✓ No azul' : '! Atenção';
+  badge.className = 'insight-badge ' + (badgeOk ? 'ok' : 'warn');
+  document.getElementById('insight-month').textContent = formatMonthLabel(cmKey);
+
+  const mesNome = monthNameOnly(cmKey);
+  document.getElementById('insight-headline').innerHTML = badgeOk
+    ? `Você guardou <span style="color:var(--gold-deep)">${currency.format(saldoMes)}</span> em ${mesNome}.`
+    : `Você gastou <span style="color:var(--rose-text)">${currency.format(Math.abs(saldoMes))}</span> a mais do que recebeu em ${mesNome}.`;
+
+  document.getElementById('insight-bar-receita').style.width = ((receita/maxVal)*100).toFixed(0) + '%';
+  document.getElementById('insight-bar-despesa').style.width = ((despesa/maxVal)*100).toFixed(0) + '%';
+  document.getElementById('insight-val-receita').textContent = currency.format(receita);
+  document.getElementById('insight-val-despesa').textContent = currency.format(despesa);
+
+  const compareEl = document.getElementById('insight-compare');
+  if(mesesAnteriores.length > 0){
+    const media = mesesAnteriores.reduce((s,m)=>s+despesaPorMes[m],0) / mesesAnteriores.length;
+    if(media > 0){
+      const diffPct = Math.round(((despesa - media) / media) * 100);
+      const unidade = mesesAnteriores.length === 1 ? 'mês' : 'meses';
+      compareEl.textContent = `${diffPct >= 0 ? '↑' : '↓'} ${Math.abs(diffPct)}% ${diffPct >= 0 ? 'acima' : 'abaixo'} da média de ${mesesAnteriores.length} ${unidade}`;
+    } else {
+      compareEl.textContent = '';
+    }
+  } else {
+    compareEl.textContent = 'Ainda sem histórico de meses anteriores para comparar.';
+  }
+}
+
+function renderResolveCard(){
+  const wrap = document.getElementById('resolve-card');
+  const over = computeOverBudget();
+  if(over.length === 0){
+    wrap.innerHTML = '<div class="resolve-empty">Tudo em dia por aqui. Nenhuma categoria estourou o orçamento este mês.</div>';
+    return;
+  }
+  wrap.innerHTML = over.map(o=>`
+    <div class="resolve-item">
+      <div>
+        <div class="name">${o.cat}</div>
+        <div class="detail">Estourou em ${currency.format(o.val - o.limit)}</div>
+      </div>
+      <button class="resolve-link" data-goto="orcamento">Ver</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-goto]').forEach(b=> b.addEventListener('click', ()=> setTab('orcamento')));
+}
+
+function renderBudgetBars(){
+  const wrap = document.getElementById('category-bars');
+  const totals = currentMonthDespesaTotals();
+  const entries = Object.entries(totals);
+  if(entries.length === 0){
+    wrap.innerHTML = '<div class="empty-state">Sem despesas neste mês ainda.</div>';
+    return;
+  }
+  const maxTotal = Math.max(...Object.values(totals));
+  const rows = entries.sort((a,b)=>b[1]-a[1]);
+
+  wrap.innerHTML = rows.map(([cat,val])=>{
+    const limit = allBudgets[cat];
+    let barClass = '';
+    let widthBase = maxTotal;
+    let limitLabel = '';
+    if(limit){
+      const pct = val / limit;
+      if(pct >= 1){ barClass = 'over'; }
+      else if(pct >= 0.8){ barClass = 'warning'; }
+      else{ barClass = 'ok'; }
+      widthBase = Math.max(limit, val);
+      limitLabel = `<span class="cat-limit">de ${currency.format(limit)} orçados</span>`;
+    }
+    const widthPct = Math.min((val/widthBase)*100, 100).toFixed(0);
+    return `
+      <div class="cat-row">
+        <div class="cat-name">${cat}</div>
+        <div class="bar-track"><div class="bar-fill ${barClass}" style="width:${widthPct}%"></div></div>
+        <div class="cat-amt mono">${currency.format(val)}${limitLabel}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderLedger(list){
+  const ledger = document.getElementById('ledger');
+  if(list.length === 0){
+    ledger.innerHTML = '<div class="empty-state">Nenhum lançamento neste filtro. Registre uma despesa ou receita acima.</div>';
+    return;
+  }
+  ledger.innerHTML = list.map(t=>{
+    const dateLabel = new Date(t.occurred_on + 'T00:00:00').toLocaleDateString('pt-BR');
+    const amtLabel = t.type === 'despesa'
+      ? `(${currency.format(t.amount)})`
+      : currency.format(t.amount);
+    return `
+      <div class="tx-row" data-id="${t.id}">
+        <div class="tx-info">
+          <div class="tx-desc">${escapeHtml(t.description)}</div>
+          <div class="tx-meta">${t.category} · ${dateLabel}</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amt mono ${t.type}">${amtLabel}</div>
+          <button class="tx-edit" title="Editar lançamento" data-id="${t.id}">✎</button>
+          <button class="tx-del" title="Excluir lançamento" data-id="${t.id}">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  ledger.querySelectorAll('.tx-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>startEdit(btn.dataset.id));
+  });
+  ledger.querySelectorAll('.tx-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteTx(btn.dataset.id));
+  });
+}
+
+async function deleteTx(id){
+  if(!confirm('Excluir este lançamento?')) return;
+  const { error } = await db.from('transactions').delete().eq('id', id);
+  if(error){ alert('Não foi possível excluir. Tente novamente.'); return; }
+  if(editingId === id) cancelEdit();
+  allTx = allTx.filter(t=>t.id !== id);
+  renderAll();
+  showToast('Lançamento excluído.');
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ---------- start ---------- */
+initAuthWatcher();
+</script>
+</body>
+</html>
