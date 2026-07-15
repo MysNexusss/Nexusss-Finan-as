@@ -2,8 +2,19 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Caderneta — controle de gastos</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1C1A16">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-apple-touch.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Caderneta">
+<meta name="mobile-web-app-capable" content="yes">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -26,7 +37,7 @@
     --ink-soft:#867A66;
     --line:#EAE1CC;
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--paper);
@@ -38,7 +49,7 @@
   .mono{font-family:'IBM Plex Mono',monospace; font-variant-numeric: tabular-nums;}
   .hidden{display:none !important;}
   button{font-family:inherit; cursor:pointer;}
-  input,select{font-family:inherit;}
+  input,select{font-family:inherit; font-size:16px;}
   .field input:focus, .field select:focus, button:focus-visible{
     outline:2px solid var(--ink);
     outline-offset:1px;
@@ -60,7 +71,7 @@
     width:100%;
     max-width:380px;
     background:var(--card);
-    border-radius:20px;
+    border-radius:26px;
     padding:38px 28px 30px;
     box-shadow:0 30px 60px rgba(0,0,0,0.3);
   }
@@ -111,20 +122,20 @@
   }
   .field input, .field select{
     width:100%;
-    padding:12px 14px;
+    padding:13px 14px;
     border:1px solid var(--line);
-    border-radius:12px;
-    font-size:15px;
+    border-radius:14px;
+    font-size:16px;
     background:var(--paper);
     color:var(--ink);
   }
   .btn-primary{
     width:100%;
-    padding:13px;
+    padding:14px;
     background:var(--gold);
     color:var(--ink);
     border:none;
-    border-radius:12px;
+    border-radius:14px;
     font-weight:700;
     font-size:15px;
     letter-spacing:0.02em;
@@ -135,7 +146,7 @@
     font-size:13px;
     margin-top:14px;
     padding:10px 12px;
-    border-radius:10px;
+    border-radius:12px;
     display:none;
   }
   .auth-msg.error{ display:block; background:#F5E6E1; color:var(--rose-text); }
@@ -154,46 +165,36 @@
   main{
     max-width:520px;
     margin:0 auto;
-    padding-bottom:110px;
+    padding-top:calc(14px + env(safe-area-inset-top));
+    padding-bottom:132px;
   }
-  .topbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:16px 16px 2px;
-    max-width:520px;
-    margin:0 auto;
-  }
-  .topbar .brand{font-weight:700; font-size:15px; color:var(--ink);}
-  #signout-btn{
-    background:none;
-    border:1px solid var(--line);
-    color:var(--ink-soft);
-    padding:6px 14px;
-    border-radius:20px;
-    font-size:12px;
+  .page-title{
+    font-size:21px; font-weight:700; color:var(--ink);
+    padding:4px 20px 14px;
   }
 
   .tab-content{display:none;}
   .tab-content.active{display:block;}
+  .subtab-content{display:none;}
+  .subtab-content.active{display:block;}
 
   .card{
     background:var(--card);
-    border-radius:16px;
-    padding:20px;
+    border-radius:22px;
+    padding:22px;
     margin:0 16px 16px;
-    box-shadow:0 1px 3px rgba(33,27,61,0.06);
+    box-shadow:0 6px 24px rgba(28,26,22,0.06);
   }
   .card h2{font-size:16px; margin:0 0 14px;}
   .card .hint{font-size:12.5px; color:var(--ink-soft); margin:-8px 0 16px;}
 
-  /* ---------- HERO (Resumo) ---------- */
+  /* ---------- HERO (Início) ---------- */
   .hero{
     background:var(--charcoal-card);
-    border-radius:20px;
-    padding:22px 20px 18px;
+    border-radius:26px;
+    padding:24px 22px 20px;
     color:#fff;
-    margin:8px 16px 16px;
+    margin:6px 16px 16px;
   }
   .hero-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
   .hero-greeting{font-size:14px; opacity:0.9; font-weight:500;}
@@ -206,9 +207,9 @@
     border-radius:20px;
   }
   .hero-balance-label{font-size:12px; opacity:0.75; margin-bottom:4px;}
-  .hero-balance{font-size:32px; font-weight:700; margin-bottom:18px; color:var(--gold);}
+  .hero-balance{font-size:33px; font-weight:700; margin-bottom:18px; color:var(--gold);}
   .hero-pills{display:flex; gap:10px; margin-bottom:16px;}
-  .hero-pill{flex:1; background:rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px; min-width:0;}
+  .hero-pill{flex:1; background:rgba(255,255,255,0.08); border-radius:16px; padding:13px 14px; min-width:0;}
   .hero-pill .pill-label{font-size:11px; opacity:0.75;}
   .hero-pill .pill-value{font-size:16px; font-weight:600; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .hero-projection{
@@ -253,7 +254,7 @@
   .resolve-empty{color:var(--ink-soft); font-size:13px; text-align:center; padding:10px 0;}
   .resolve-link{color:var(--ink); font-size:12.5px; font-weight:600; background:none; border:1px solid var(--line); padding:6px 12px; border-radius:20px; flex-shrink:0;}
 
-  /* ---------- FORM (Lançamentos) ---------- */
+  /* ---------- FORM (Extrato) ---------- */
   .panel-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
   .panel-header h2{margin:0;}
   .cancel-edit-btn{
@@ -267,9 +268,9 @@
   }
   .form-grid{display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; align-items:end;}
   .form-grid .field{margin-bottom:0;}
-  .type-toggle{display:flex; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .type-toggle{display:flex; border:1px solid var(--line); border-radius:14px; overflow:hidden;}
   .type-toggle button{
-    flex:1; padding:11px 0; background:var(--paper); border:none;
+    flex:1; padding:12px 0; background:var(--paper); border:none;
     font-size:13px; font-weight:600; color:var(--ink-soft);
     transition:background-color .2s ease, color .2s ease;
   }
@@ -278,7 +279,7 @@
   .form-row2{display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; margin-top:12px; align-items:end;}
   #add-btn{
     background:var(--gold);
-    color:var(--ink); border:none; border-radius:12px; padding:12px 20px;
+    color:var(--ink); border:none; border-radius:14px; padding:13px 20px;
     font-weight:700; font-size:14px; white-space:nowrap;
   }
   #add-btn:disabled{opacity:0.6;}
@@ -286,41 +287,57 @@
 
   .filters{display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap;}
   .filters select{
-    padding:9px 10px; border:1px solid var(--line); border-radius:10px;
-    background:var(--paper); font-size:13px; color:var(--ink);
+    padding:9px 10px; border:1px solid var(--line); border-radius:12px;
+    background:var(--paper); font-size:14px; color:var(--ink);
   }
   .month-nav{display:flex; align-items:center; gap:6px;}
   .month-nav button{
     background:var(--paper); border:1px solid var(--line); color:var(--ink);
-    width:32px; height:32px; border-radius:10px; font-size:15px; line-height:1;
+    width:34px; height:34px; border-radius:12px; font-size:15px; line-height:1;
   }
 
   .ledger{border-top:2px dashed var(--line); padding-top:4px;}
   .tx-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line);}
+  .tx-left{display:flex; align-items:center; gap:12px; min-width:0; flex:1;}
+  .tx-icon{
+    width:42px; height:42px; border-radius:50%; flex-shrink:0;
+    background:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+  }
   .tx-info{display:flex; flex-direction:column; gap:2px; min-width:0;}
-  .tx-desc{font-size:14.5px; font-weight:600; color:var(--ink);}
+  .tx-desc{font-size:14.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .tx-meta{font-size:12px; color:var(--ink-soft);}
-  .tx-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
-  .tx-amt{font-size:15px; font-weight:600;}
+  .tx-right{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+  .tx-amt{font-size:15px; font-weight:700;}
   .tx-amt.despesa{color:var(--rose-text);}
   .tx-amt.receita{color:var(--gold-deep);}
-  .tx-edit, .tx-del{background:none; border:none; color:var(--ink-soft); font-size:15px; line-height:1; padding:4px 6px; border-radius:8px;}
+  .tx-edit, .tx-del{background:none; border:none; color:var(--ink-soft); font-size:14px; line-height:1; padding:4px 5px; border-radius:8px;}
   .tx-edit:hover{color:var(--ink); background:var(--paper);}
   .tx-del:hover{color:var(--rose-text); background:var(--paper);}
   .empty-state{text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:14px;}
+
+  /* ---------- ESTATÍSTICAS: sub-abas ---------- */
+  .subtab-toggle-wrap{padding:0 16px 6px;}
+  .subtab-toggle{display:flex; gap:8px; background:var(--card); border-radius:16px; padding:5px; box-shadow:0 6px 24px rgba(28,26,22,0.06);}
+  .subtab-toggle button{
+    flex:1; padding:10px 0; border-radius:12px; border:none;
+    background:none; font-size:13px; font-weight:600; color:var(--ink-soft);
+  }
+  .subtab-toggle button.active{background:var(--charcoal-card); color:var(--gold);}
 
   /* ---------- ORÇAMENTO ---------- */
   .budget-form{display:flex; flex-direction:column; gap:10px;}
   .budget-row{display:grid; grid-template-columns:1fr 130px; align-items:center; gap:12px;}
   .budget-row label{font-size:13px; color:var(--ink-soft);}
   .budget-row input{
-    padding:9px 10px; border:1px solid var(--line); border-radius:10px;
-    background:var(--paper); font-size:14px; color:var(--ink); text-align:right; width:100%;
+    padding:10px; border:1px solid var(--line); border-radius:12px;
+    background:var(--paper); font-size:16px; color:var(--ink); text-align:right; width:100%;
   }
   #budget-save-btn{
     margin-top:14px;
     background:var(--gold);
-    color:var(--ink); border:none; border-radius:12px; padding:11px 20px;
+    color:var(--ink); border:none; border-radius:14px; padding:12px 20px;
     font-weight:700; font-size:13.5px;
   }
   #budget-msg{font-size:13px; margin-top:8px; display:none;}
@@ -336,56 +353,9 @@
   .cat-row .cat-amt{font-size:13px; text-align:right;}
   .cat-row .cat-limit{font-size:11px; color:var(--ink-soft); display:block; margin-top:2px; font-weight:400;}
 
-  /* ---------- TAB BAR ---------- */
-  .tabbar{
-    position:fixed; left:0; right:0; bottom:0;
-    background:var(--card);
-    display:flex;
-    box-shadow:0 -2px 14px rgba(33,27,61,0.1);
-    padding:8px 8px calc(6px + env(safe-area-inset-bottom));
-    z-index:40;
-  }
-  .tabbar-inner{display:flex; max-width:520px; margin:0 auto; width:100%;}
-  .tabbar button{
-    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
-    background:none; border:none; color:var(--ink-soft); font-size:10.5px; padding:6px 0;
-    border-radius:10px;
-  }
-  .tabbar button svg{stroke:currentColor;}
-  .tabbar button.active{color:var(--gold-deep);}
-
-  .fab{
-    position:fixed; right:calc(50% - 260px + 18px); bottom:80px;
-    width:52px; height:52px; border-radius:50%;
-    background:var(--gold);
-    display:flex; align-items:center; justify-content:center;
-    border:none; box-shadow:0 8px 20px rgba(28,26,22,0.35);
-    z-index:41;
-  }
-  @media (max-width:556px){
-    .fab{right:18px;}
-  }
-
-  @media (max-width:640px){
-    .form-grid{grid-template-columns:1fr;}
-    .form-row2{grid-template-columns:1fr 1fr;}
-    #add-btn{grid-column:1 / -1;}
-    .tx-row{align-items:flex-start; flex-direction:column;}
-    .tx-right{width:100%; justify-content:space-between;}
-  }
-
-  .toast{
-    position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(12px);
-    background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px;
-    font-size:13.5px; opacity:0; pointer-events:none;
-    transition:opacity .25s ease, transform .25s ease; z-index:80;
-    box-shadow:0 10px 24px rgba(0,0,0,0.25);
-  }
-  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
-
   /* ---------- DÍVIDAS ---------- */
   .debt-summary{display:flex; gap:10px;}
-  .debt-summary-item{flex:1; border-radius:12px; padding:14px; min-width:0;}
+  .debt-summary-item{flex:1; border-radius:16px; padding:14px; min-width:0;}
   .debt-summary-item.owe{background:#F5E6E1;}
   .debt-summary-item.owed{background:var(--gold-soft);}
   .debt-summary-item .label{font-size:11px; color:var(--ink-soft); margin-bottom:4px;}
@@ -394,8 +364,8 @@
 
   .debt-form-row{display:grid; grid-template-columns:1fr 2fr auto; gap:12px; margin-top:12px; align-items:end;}
   #debt-add-btn{
-    background:var(--gold); color:var(--ink); border:none; border-radius:12px;
-    padding:12px 18px; font-weight:700; font-size:14px; white-space:nowrap;
+    background:var(--gold); color:var(--ink); border:none; border-radius:14px;
+    padding:13px 18px; font-weight:700; font-size:14px; white-space:nowrap;
   }
   #debt-add-btn:disabled{opacity:0.6;}
   #debt-form-msg{font-size:13px; color:var(--rose-text); margin-top:10px; display:none;}
@@ -406,6 +376,14 @@
   .debt-row{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid var(--line);}
   .debt-row:last-child{border-bottom:none;}
   .debt-row.paid{opacity:0.55;}
+  .debt-left{display:flex; align-items:center; gap:12px; min-width:0; flex:1;}
+  .debt-avatar{
+    width:40px; height:40px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:15px;
+  }
+  .debt-row.type-devo .debt-avatar{background:#F5E6E1; color:var(--rose-text);}
+  .debt-row.type-me_devem .debt-avatar{background:var(--gold-soft); color:var(--gold-deep);}
   .debt-info{min-width:0; flex:1;}
   .debt-name{font-size:14.5px; font-weight:600; color:var(--ink);}
   .debt-meta{font-size:12px; color:var(--ink-soft); margin:2px 0 6px;}
@@ -417,14 +395,71 @@
   .debt-actions{display:flex; gap:6px; align-items:center;}
   .debt-pay-btn{background:var(--gold); color:var(--ink); border:none; border-radius:20px; padding:6px 12px; font-size:11px; font-weight:700; white-space:nowrap;}
   .debt-pay-btn:disabled{background:var(--line); color:var(--ink-soft);}
-  .debt-del{background:none; border:none; color:var(--ink-soft); font-size:15px; padding:4px 6px; border-radius:8px;}
+  .debt-del{background:none; border:none; color:var(--ink-soft); font-size:14px; padding:4px 5px; border-radius:8px;}
   .debt-del:hover{color:var(--rose-text); background:var(--paper);}
   .debt-empty{color:var(--ink-soft); font-size:13px; text-align:center; padding:14px 0;}
 
+  /* ---------- PERFIL ---------- */
+  .profile-avatar{
+    width:64px; height:64px; border-radius:50%; margin:4px auto 14px;
+    background:var(--charcoal-card); color:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px; font-weight:700;
+  }
+  .profile-email{font-size:15px; font-weight:600; color:var(--ink); text-align:center;}
+  .profile-since{font-size:12.5px; color:var(--ink-soft); margin-top:4px; text-align:center;}
+  .signout-full{
+    width:100%; background:none; border:1px solid var(--line); color:var(--rose-text);
+    padding:13px; border-radius:14px; font-weight:600; font-size:14px;
+  }
+  .signout-full:hover{background:#F5E6E1;}
+
+  /* ---------- TAB BAR ---------- */
+  .tabbar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--card);
+    display:flex;
+    box-shadow:0 -4px 24px rgba(28,26,22,0.1);
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-radius:26px 26px 0 0;
+    z-index:40;
+  }
+  .tabbar-inner{display:flex; align-items:flex-end; max-width:520px; margin:0 auto; width:100%;}
+  .tabbar button{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    background:none; border:none; color:var(--ink-soft); font-size:10px; padding:7px 0 4px;
+    border-radius:12px;
+  }
+  .tabbar button svg{stroke:currentColor;}
+  .tabbar button.active{color:var(--gold-deep);}
+  .nav-add{
+    flex:0 0 auto !important;
+    width:52px; height:52px;
+    margin:-24px 8px 0 !important;
+    border-radius:50%;
+    background:var(--gold) !important;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 18px rgba(28,26,22,0.3);
+    border:4px solid var(--card);
+  }
+  .nav-add svg{stroke:#2A2721 !important;}
+
   @media (max-width:640px){
+    .form-grid{grid-template-columns:1fr;}
+    .form-row2{grid-template-columns:1fr 1fr;}
+    #add-btn{grid-column:1 / -1;}
     .debt-form-row{grid-template-columns:1fr;}
     #debt-add-btn{width:100%;}
   }
+
+  .toast{
+    position:fixed; left:50%; bottom:110px; transform:translateX(-50%) translateY(12px);
+    background:var(--ink); color:#fff; padding:12px 20px; border-radius:14px;
+    font-size:13.5px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease; z-index:80;
+    box-shadow:0 10px 24px rgba(0,0,0,0.25);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
@@ -460,14 +495,9 @@
 
 <!-- ============ APP SCREEN ============ -->
 <div id="app-screen" class="hidden">
-  <div class="topbar">
-    <div class="brand">Caderneta</div>
-    <button id="signout-btn">Sair</button>
-  </div>
-
   <main>
-    <!-- ===== RESUMO ===== -->
-    <section class="tab-content active" id="tab-resumo">
+    <!-- ===== INÍCIO ===== -->
+    <section class="tab-content active" id="tab-inicio">
       <div class="hero">
         <div class="hero-top">
           <div class="hero-greeting" id="hero-greeting">Olá</div>
@@ -540,8 +570,9 @@
       </div>
     </section>
 
-    <!-- ===== LANÇAMENTOS ===== -->
-    <section class="tab-content" id="tab-lancamentos">
+    <!-- ===== EXTRATO ===== -->
+    <section class="tab-content" id="tab-extrato">
+      <div class="page-title">Extrato</div>
       <div class="card">
         <div class="panel-header">
           <h2 id="tx-form-title">Novo lançamento</h2>
@@ -616,119 +647,138 @@
       </div>
     </section>
 
-    <!-- ===== ORÇAMENTO ===== -->
-    <section class="tab-content" id="tab-orcamento">
-      <div class="card">
-        <h2>Orçamento por categoria</h2>
-        <p class="hint">Defina um limite mensal para cada categoria. Deixe em branco para não acompanhar.</p>
-        <div class="budget-form" id="budget-form"></div>
-        <button type="button" id="budget-save-btn">Salvar orçamento</button>
-        <div id="budget-msg"></div>
+    <!-- ===== ESTATÍSTICAS ===== -->
+    <section class="tab-content" id="tab-estatisticas">
+      <div class="page-title">Estatísticas</div>
+      <div class="subtab-toggle-wrap">
+        <div class="subtab-toggle">
+          <button type="button" class="active" data-subtab="orcamento">Orçamento</button>
+          <button type="button" data-subtab="dividas">Dívidas</button>
+        </div>
       </div>
 
-      <div class="card">
-        <h2>Gastos por categoria (mês atual)</h2>
-        <div class="category-bars" id="category-bars">
-          <div class="empty-state">Sem despesas neste mês ainda.</div>
+      <div class="subtab-content active" id="substat-orcamento">
+        <div class="card" style="margin-top:14px;">
+          <h2>Orçamento por categoria</h2>
+          <p class="hint">Defina um limite mensal para cada categoria. Deixe em branco para não acompanhar.</p>
+          <div class="budget-form" id="budget-form"></div>
+          <button type="button" id="budget-save-btn">Salvar orçamento</button>
+          <div id="budget-msg"></div>
+        </div>
+
+        <div class="card">
+          <h2>Gastos por categoria (mês atual)</h2>
+          <div class="category-bars" id="category-bars">
+            <div class="empty-state">Sem despesas neste mês ainda.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subtab-content" id="substat-dividas">
+        <div class="card" style="margin-top:14px;">
+          <h2>Dívidas</h2>
+          <div class="debt-summary">
+            <div class="debt-summary-item owe">
+              <div class="label">Você deve</div>
+              <div class="value mono" id="debt-total-devo">R$ 0,00</div>
+            </div>
+            <div class="debt-summary-item owed">
+              <div class="label">Devem a você</div>
+              <div class="value mono" id="debt-total-me-devem">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Nova dívida</h2>
+          <form id="debt-form">
+            <div class="form-grid">
+              <div class="field">
+                <label for="debt-person">Pessoa</label>
+                <input type="text" id="debt-person" placeholder="Nome da pessoa" required>
+              </div>
+              <div class="field">
+                <label for="debt-amount">Valor total (R$)</label>
+                <input type="number" id="debt-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required>
+              </div>
+              <div class="field">
+                <label>Tipo</label>
+                <div class="type-toggle debt-toggle">
+                  <button type="button" class="active" data-dtype="devo">Eu devo</button>
+                  <button type="button" data-dtype="me_devem">Me devem</button>
+                </div>
+              </div>
+            </div>
+            <div class="debt-form-row">
+              <div class="field">
+                <label for="debt-installments">Parcelas totais</label>
+                <input type="number" id="debt-installments" min="1" step="1" value="1">
+              </div>
+              <div class="field">
+                <label for="debt-desc">Descrição (opcional)</label>
+                <input type="text" id="debt-desc" placeholder="Ex.: Empréstimo, jantar dividido">
+              </div>
+              <button type="submit" id="debt-add-btn">Registrar</button>
+            </div>
+          </form>
+          <div id="debt-form-msg"></div>
+        </div>
+
+        <div class="card">
+          <h2>Você deve</h2>
+          <div id="debt-list-devo"><div class="debt-empty">Carregando…</div></div>
+        </div>
+
+        <div class="card">
+          <h2>Devem a você</h2>
+          <div id="debt-list-me-devem"><div class="debt-empty">Carregando…</div></div>
         </div>
       </div>
     </section>
 
-    <!-- ===== DÍVIDAS ===== -->
-    <section class="tab-content" id="tab-dividas">
+    <!-- ===== PERFIL ===== -->
+    <section class="tab-content" id="tab-perfil">
+      <div class="page-title">Perfil</div>
       <div class="card">
-        <h2>Dívidas</h2>
-        <div class="debt-summary">
-          <div class="debt-summary-item owe">
-            <div class="label">Você deve</div>
-            <div class="value mono" id="debt-total-devo">R$ 0,00</div>
-          </div>
-          <div class="debt-summary-item owed">
-            <div class="label">Devem a você</div>
-            <div class="value mono" id="debt-total-me-devem">R$ 0,00</div>
-          </div>
-        </div>
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <div class="profile-email" id="profile-email">—</div>
+        <div class="profile-since">Bem-vindo(a) à Caderneta</div>
       </div>
-
       <div class="card">
-        <h2>Nova dívida</h2>
-        <form id="debt-form">
-          <div class="form-grid">
-            <div class="field">
-              <label for="debt-person">Pessoa</label>
-              <input type="text" id="debt-person" placeholder="Nome da pessoa" required>
-            </div>
-            <div class="field">
-              <label for="debt-amount">Valor total (R$)</label>
-              <input type="number" id="debt-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required>
-            </div>
-            <div class="field">
-              <label>Tipo</label>
-              <div class="type-toggle debt-toggle">
-                <button type="button" class="active" data-dtype="devo">Eu devo</button>
-                <button type="button" data-dtype="me_devem">Me devem</button>
-              </div>
-            </div>
-          </div>
-          <div class="debt-form-row">
-            <div class="field">
-              <label for="debt-installments">Parcelas totais</label>
-              <input type="number" id="debt-installments" min="1" step="1" value="1">
-            </div>
-            <div class="field">
-              <label for="debt-desc">Descrição (opcional)</label>
-              <input type="text" id="debt-desc" placeholder="Ex.: Empréstimo, jantar dividido">
-            </div>
-            <button type="submit" id="debt-add-btn">Registrar</button>
-          </div>
-        </form>
-        <div id="debt-form-msg"></div>
-      </div>
-
-      <div class="card">
-        <h2>Você deve</h2>
-        <div id="debt-list-devo"><div class="debt-empty">Carregando…</div></div>
-      </div>
-
-      <div class="card">
-        <h2>Devem a você</h2>
-        <div id="debt-list-me-devem"><div class="debt-empty">Carregando…</div></div>
+        <button id="signout-btn" class="signout-full">Sair da conta</button>
       </div>
     </section>
   </main>
 
-  <button class="fab" id="fab-add" aria-label="Novo lançamento">
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#2A2721" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  </button>
-
   <nav class="tabbar">
     <div class="tabbar-inner">
-      <button data-tab="resumo" class="active">
+      <button data-tab="inicio" class="active">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          <path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>
         </svg>
-        Resumo
+        Início
       </button>
-      <button data-tab="lancamentos">
+      <button data-tab="extrato">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
           <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
         </svg>
-        Lançamentos
+        Extrato
       </button>
-      <button data-tab="orcamento">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>
-        </svg>
-        Orçamento
+      <button class="nav-add" id="nav-add-btn" aria-label="Novo lançamento">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button data-tab="dividas">
+      <button data-tab="estatisticas">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-          <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          <line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="14"/>
         </svg>
-        Dívidas
+        Estatísticas
+      </button>
+      <button data-tab="perfil">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>
+        </svg>
+        Perfil
       </button>
     </div>
   </nav>
@@ -766,6 +816,16 @@ const CATEGORY_PLACEHOLDERS = {
   'Educação': 'Ex.: Curso, material',
   'Salário': 'Ex.: Salário do mês',
   'Outros': 'Ex.: Diversos'
+};
+const CATEGORY_ICONS = {
+  'Alimentação': '🍽️',
+  'Transporte': '🚗',
+  'Moradia': '🏠',
+  'Saúde': '💊',
+  'Lazer': '🎬',
+  'Educação': '📚',
+  'Salário': '💰',
+  'Outros': '📦'
 };
 
 let currentTab = 'login';
@@ -868,6 +928,7 @@ function handleSession(session){
     authScreen.classList.add('hidden');
     appScreen.classList.remove('hidden');
     currentUserEmail = session.user.email;
+    renderProfile();
     loadTransactions();
     loadBudgets();
     loadDividas();
@@ -875,6 +936,12 @@ function handleSession(session){
     appScreen.classList.add('hidden');
     authScreen.classList.remove('hidden');
   }
+}
+
+function renderProfile(){
+  document.getElementById('profile-email').textContent = currentUserEmail;
+  const initial = firstNameFromEmail(currentUserEmail).charAt(0).toUpperCase() || '?';
+  document.getElementById('profile-avatar').textContent = initial;
 }
 
 /* ---------- navegação por abas ---------- */
@@ -886,9 +953,18 @@ function setTab(name){
 document.querySelectorAll('.tabbar button[data-tab]').forEach(b=>{
   b.addEventListener('click', ()=> setTab(b.dataset.tab));
 });
-document.getElementById('fab-add').addEventListener('click', ()=>{
+
+function setSubTab(name){
+  document.querySelectorAll('.subtab-content').forEach(el=> el.classList.toggle('active', el.id === 'substat-'+name));
+  document.querySelectorAll('.subtab-toggle button[data-subtab]').forEach(b=> b.classList.toggle('active', b.dataset.subtab === name));
+}
+document.querySelectorAll('.subtab-toggle button[data-subtab]').forEach(b=>{
+  b.addEventListener('click', ()=> setSubTab(b.dataset.subtab));
+});
+
+document.getElementById('nav-add-btn').addEventListener('click', ()=>{
   cancelEdit();
-  setTab('lancamentos');
+  setTab('extrato');
   setTimeout(()=>{ document.getElementById('tx-desc').focus(); }, 150);
 });
 document.getElementById('toggle-saldo').addEventListener('click', ()=>{
@@ -897,9 +973,9 @@ document.getElementById('toggle-saldo').addEventListener('click', ()=>{
 });
 
 /* ---------- formulário de lançamento ---------- */
-document.querySelectorAll('.type-toggle button').forEach(btn=>{
+document.querySelectorAll('.type-toggle:not(.debt-toggle) button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.type-toggle:not(.debt-toggle) button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     selectedType = btn.dataset.type;
   });
@@ -929,13 +1005,13 @@ function startEdit(id){
   document.getElementById('tx-category').value = t.category;
   document.getElementById('tx-date').value = t.occurred_on;
   txDescInput.placeholder = CATEGORY_PLACEHOLDERS[t.category] || 'Descrição';
-  document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
-  document.querySelector(`.type-toggle button[data-type="${t.type}"]`).classList.add('active');
+  document.querySelectorAll('.type-toggle:not(.debt-toggle) button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.type-toggle:not(.debt-toggle) button[data-type="${t.type}"]`).classList.add('active');
   selectedType = t.type;
   txFormTitle.textContent = 'Editar lançamento';
   addBtn.textContent = 'Salvar alterações';
   cancelEditBtn.style.display = 'inline-block';
-  setTab('lancamentos');
+  setTab('extrato');
   txForm.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
@@ -943,8 +1019,8 @@ function cancelEdit(){
   editingId = null;
   txForm.reset();
   document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
-  document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
-  document.querySelector('.type-toggle button[data-type="despesa"]').classList.add('active');
+  document.querySelectorAll('.type-toggle:not(.debt-toggle) button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.type-toggle:not(.debt-toggle) button[data-type="despesa"]').classList.add('active');
   selectedType = 'despesa';
   txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
   txFormTitle.textContent = 'Novo lançamento';
@@ -1152,12 +1228,16 @@ function renderDebtList(type, wrap){
     if(d.description) metaParts.push(escapeHtml(d.description));
     metaParts.push(`${d.installments_paid}/${d.installments_total} parcela${d.installments_total>1?'s':''}`);
     const actionLabel = isPaid ? 'Quitada' : (d.installments_total === 1 ? 'Marcar como paga' : `Pagar parcela ${d.installments_paid+1}/${d.installments_total}`);
+    const initial = (d.person_name || '?').charAt(0).toUpperCase();
     return `
       <div class="debt-row type-${d.type} ${isPaid?'paid':''}" data-id="${d.id}">
-        <div class="debt-info">
-          <div class="debt-name">${escapeHtml(d.person_name)}</div>
-          <div class="debt-meta">${metaParts.join(' · ')}</div>
-          <div class="debt-progress-track"><div class="debt-progress-fill" style="width:${pct}%"></div></div>
+        <div class="debt-left">
+          <div class="debt-avatar">${initial}</div>
+          <div class="debt-info">
+            <div class="debt-name">${escapeHtml(d.person_name)}</div>
+            <div class="debt-meta">${metaParts.join(' · ')}</div>
+            <div class="debt-progress-track"><div class="debt-progress-fill" style="width:${pct}%"></div></div>
+          </div>
         </div>
         <div class="debt-right">
           <div class="debt-amt mono">${isPaid ? 'Quitada' : currency.format(debtRemaining(d)) + ' restante'}</div>
@@ -1198,7 +1278,7 @@ async function deleteDivida(id){
   showToast('Dívida excluída.');
 }
 
-/* ---------- navegação de mês (aba Lançamentos) ---------- */
+/* ---------- navegação de mês (aba Extrato) ---------- */
 function monthKey(date){
   return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0');
 }
@@ -1448,7 +1528,10 @@ function renderResolveCard(){
       <button class="resolve-link" data-goto="orcamento">Ver</button>
     </div>
   `).join('');
-  wrap.querySelectorAll('[data-goto]').forEach(b=> b.addEventListener('click', ()=> setTab('orcamento')));
+  wrap.querySelectorAll('[data-goto]').forEach(b=> b.addEventListener('click', ()=> {
+    setTab('estatisticas');
+    setSubTab('orcamento');
+  }));
 }
 
 function renderBudgetBars(){
@@ -1497,11 +1580,15 @@ function renderLedger(list){
     const amtLabel = t.type === 'despesa'
       ? `(${currency.format(t.amount)})`
       : currency.format(t.amount);
+    const icon = CATEGORY_ICONS[t.category] || '📦';
     return `
       <div class="tx-row" data-id="${t.id}">
-        <div class="tx-info">
-          <div class="tx-desc">${escapeHtml(t.description)}</div>
-          <div class="tx-meta">${t.category} · ${dateLabel}</div>
+        <div class="tx-left">
+          <div class="tx-icon">${icon}</div>
+          <div class="tx-info">
+            <div class="tx-desc">${escapeHtml(t.description)}</div>
+            <div class="tx-meta">${t.category} · ${dateLabel}</div>
+          </div>
         </div>
         <div class="tx-right">
           <div class="tx-amt mono ${t.type}">${amtLabel}</div>
@@ -1534,6 +1621,13 @@ function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+/* ---------- PWA: registro do Service Worker ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
 }
 
 /* ---------- start ---------- */
