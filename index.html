@@ -299,6 +299,16 @@
   .type-toggle button.active[data-type="receita"]{background:var(--gold); color:var(--ink);}
   .form-row2{display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; margin-top:12px; align-items:end;}
   #tx-installments-field{display:none; margin-top:12px;}
+  .rule-prompt{
+    margin-top:12px; background:var(--gold-soft); border-radius:14px; padding:12px 14px;
+    font-size:12.5px; color:var(--gold-deep);
+  }
+  .rule-prompt-actions{display:flex; gap:8px; margin-top:8px;}
+  .rule-prompt-actions button{
+    border:none; border-radius:20px; padding:6px 12px; font-size:12px; font-weight:600;
+  }
+  #rule-prompt-save{background:var(--gold); color:var(--ink);}
+  #rule-prompt-dismiss{background:none; color:var(--gold-deep); border:1px solid var(--gold-deep) !important;}
   #add-btn{
     background:var(--gold);
     color:var(--ink); border:none; border-radius:14px; padding:13px 20px;
@@ -450,6 +460,41 @@
     padding:13px; border-radius:14px; font-weight:600; font-size:14px;
   }
   .signout-full:hover{background:#F5E6E1;}
+
+  /* ---------- GERENCIAR CATEGORIAS ---------- */
+  .cat-row{
+    display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--line);
+  }
+  .cat-row:last-child{border-bottom:none;}
+  .cat-row input[type="text"].cat-icon-input{
+    width:38px; text-align:center; padding:8px 4px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:16px;
+  }
+  .cat-row input[type="text"].cat-name-input{
+    flex:1; min-width:0; padding:9px 10px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:14px; color:var(--ink);
+  }
+  .cat-row input[type="color"]{
+    width:32px; height:32px; padding:0; border:1px solid var(--line); border-radius:50%; overflow:hidden; background:none; flex-shrink:0;
+  }
+  .cat-row button{background:none; border:none; padding:5px; border-radius:8px; flex-shrink:0; font-size:14px; color:var(--ink-soft); line-height:1;}
+  .cat-row .cat-default-btn.active{color:var(--gold-deep);}
+  .cat-row .cat-del:hover{color:var(--rose-text); background:var(--paper);}
+  .cat-row .cat-move:hover{background:var(--paper); color:var(--ink);}
+  .cat-add-row{display:flex; align-items:center; gap:8px; margin-top:12px;}
+  .cat-add-row input[type="text"]:first-child{
+    width:38px; text-align:center; padding:9px 4px; border:1px solid var(--line); border-radius:10px; background:var(--paper); font-size:16px;
+  }
+  .cat-add-row input[type="text"]#cat-add-name{
+    flex:1; min-width:0; padding:9px 10px; border:1px solid var(--line); border-radius:10px; background:var(--paper); font-size:14px; color:var(--ink);
+  }
+  .cat-add-row input[type="color"]{width:32px; height:32px; padding:0; border:1px solid var(--line); border-radius:50%; overflow:hidden; background:none; flex-shrink:0;}
+  #cat-add-btn{background:var(--gold); color:var(--ink); border:none; border-radius:10px; padding:9px 14px; font-weight:700; font-size:13px; flex-shrink:0;}
+  #cat-manage-msg{font-size:12.5px; color:var(--rose-text); margin-top:8px; display:none;}
+  @media (max-width:640px){
+    .cat-add-row{flex-wrap:wrap;}
+    #cat-add-btn{flex:1 1 100%;}
+  }
 
   /* ---------- TAB BAR ---------- */
   .tabbar{
@@ -705,6 +750,13 @@
             <label for="tx-installments">Número de parcelas</label>
             <input type="number" id="tx-installments" min="2" step="1" value="2">
           </div>
+          <div class="rule-prompt hidden" id="rule-prompt">
+            <span id="rule-prompt-text"></span>
+            <div class="rule-prompt-actions">
+              <button type="button" id="rule-prompt-save">Salvar regra</button>
+              <button type="button" id="rule-prompt-dismiss">Agora não</button>
+            </div>
+          </div>
         </form>
         <div id="form-msg"></div>
       </div>
@@ -837,6 +889,20 @@
         <div class="profile-email" id="profile-email">—</div>
         <div class="profile-since">Bem-vindo(a) à Caderneta</div>
       </div>
+
+      <div class="card">
+        <h2>Categorias</h2>
+        <p class="hint">Toque no ícone, no nome ou na cor pra editar. A estrela define a categoria padrão (usada quando nada mais combina).</p>
+        <div id="category-manage-list"></div>
+        <div class="cat-add-row">
+          <input type="text" id="cat-add-icon" maxlength="4" value="🏷️" aria-label="Ícone da nova categoria">
+          <input type="text" id="cat-add-name" placeholder="Nova categoria" aria-label="Nome da nova categoria">
+          <input type="color" id="cat-add-color" value="#867A66" aria-label="Cor da nova categoria">
+          <button type="button" id="cat-add-btn">Adicionar</button>
+        </div>
+        <div id="cat-manage-msg"></div>
+      </div>
+
       <div class="card">
         <button id="signout-btn" class="signout-full">Sair da conta</button>
       </div>
@@ -898,9 +964,24 @@ if (isConfigured) {
 }
 
 const currency = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
-const CATEGORIES = ['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Salário','Outros'];
-const BUDGET_CATEGORIES = CATEGORIES.filter(c => c !== 'Salário');
-const CATEGORY_PLACEHOLDERS = {
+
+/* ---------- categorias configuráveis ----------
+   As categorias agora vêm do Supabase (tabela `categories`), não são mais
+   fixas. Na primeira vez que o usuário entra, semeamos essas 8 como ponto
+   de partida — ele pode editar, apagar, reordenar e criar novas depois. */
+const DEFAULT_CATEGORY_SEED = [
+  { name:'Alimentação', icon:'🍽️', color:'#C6A15B', sort_order:0, is_default:false },
+  { name:'Transporte',  icon:'🚗', color:'#8E4438', sort_order:1, is_default:false },
+  { name:'Moradia',     icon:'🏠', color:'#7A8B6F', sort_order:2, is_default:false },
+  { name:'Saúde',       icon:'💊', color:'#B8752E', sort_order:3, is_default:false },
+  { name:'Lazer',       icon:'🎬', color:'#A9823F', sort_order:4, is_default:false },
+  { name:'Educação',    icon:'📚', color:'#8C6E8A', sort_order:5, is_default:false },
+  { name:'Salário',     icon:'💰', color:'#4C7A6B', sort_order:6, is_default:false },
+  { name:'Outros',      icon:'📦', color:'#867A66', sort_order:7, is_default:true  }
+];
+// Sugestões de texto de exemplo — usadas quando o nome bate com um dos
+// padrões acima; categorias novas/personalizadas caem no texto genérico.
+const DEFAULT_PLACEHOLDER_HINTS = {
   'Alimentação': 'Ex.: Supermercado',
   'Transporte': 'Ex.: Uber, gasolina',
   'Moradia': 'Ex.: Aluguel, conta de luz',
@@ -910,16 +991,39 @@ const CATEGORY_PLACEHOLDERS = {
   'Salário': 'Ex.: Salário do mês',
   'Outros': 'Ex.: Diversos'
 };
-const CATEGORY_ICONS = {
-  'Alimentação': '🍽️',
-  'Transporte': '🚗',
-  'Moradia': '🏠',
-  'Saúde': '💊',
-  'Lazer': '🎬',
-  'Educação': '📚',
-  'Salário': '💰',
-  'Outros': '📦'
-};
+
+let allCategories = [];    // [{id,name,color,icon,sort_order,is_default}]
+let allCategoryRules = []; // [{id,keyword,category_name}]
+
+function categoryPlaceholder(name){
+  return DEFAULT_PLACEHOLDER_HINTS[name] || (name ? `Descrição do gasto em ${name}` : 'Descrição');
+}
+function defaultCategoryName(){
+  const def = allCategories.find(c=>c.is_default);
+  return def ? def.name : (allCategories[0] ? allCategories[0].name : 'Outros');
+}
+function categoryIcon(name){
+  const c = allCategories.find(x=>x.name===name);
+  if(c) return c.icon;
+  const def = allCategories.find(x=>x.is_default);
+  return def ? def.icon : '📦';
+}
+function categoryColor(name){
+  const c = allCategories.find(x=>x.name===name);
+  return c ? c.color : 'var(--line)';
+}
+function resolveBrandCategory(brand){
+  if(allCategories.some(c=>c.name === brand.category)) return brand.category;
+  return defaultCategoryName();
+}
+function detectCategoryRule(text){
+  const norm = normalizeBrandText(text);
+  if(!norm) return null;
+  for(const rule of allCategoryRules){
+    if(norm.includes(normalizeBrandText(rule.keyword))) return rule.category_name;
+  }
+  return null;
+}
 
 /* ---------- reconhecimento de marcas ----------
    Mapa fácil de estender: adicione um objeto novo no array BRANDS
@@ -1077,6 +1181,8 @@ function handleSession(session){
     appScreen.classList.remove('hidden');
     currentUserEmail = session.user.email;
     renderProfile();
+    loadCategories();
+    loadCategoryRules();
     loadTransactions();
     loadBudgets();
     loadDividas();
@@ -1213,10 +1319,46 @@ function paymentLabelFor(t){
     : base;
 }
 
-txCategorySelect.addEventListener('change', ()=>{
-  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+let lastAutoCategory = null;
+let lastAutoKeyword = null;
+
+function hideRulePrompt(){
+  document.getElementById('rule-prompt').classList.add('hidden');
+}
+function showRulePrompt(keyword, categoryName){
+  document.getElementById('rule-prompt-text').textContent = `Salvar "${categoryName}" para lançamentos com "${keyword}" no futuro?`;
+  document.getElementById('rule-prompt').dataset.keyword = keyword;
+  document.getElementById('rule-prompt').dataset.category = categoryName;
+  document.getElementById('rule-prompt').classList.remove('hidden');
+}
+document.getElementById('rule-prompt-dismiss').addEventListener('click', hideRulePrompt);
+document.getElementById('rule-prompt-save').addEventListener('click', async ()=>{
+  const wrap = document.getElementById('rule-prompt');
+  const keyword = wrap.dataset.keyword;
+  const category_name = wrap.dataset.category;
+  const { data: { session } } = await db.auth.getSession();
+  const { error } = await db.from('category_rules').upsert(
+    { user_id: session.user.id, keyword, category_name },
+    { onConflict: 'user_id,keyword' }
+  );
+  if(error){
+    showToast('Não foi possível salvar a regra.');
+    return;
+  }
+  showToast('Regra salva. Da próxima vez, a categoria já vem sugerida.');
+  hideRulePrompt();
+  loadCategoryRules();
 });
-txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+
+txCategorySelect.addEventListener('change', ()=>{
+  txDescInput.placeholder = categoryPlaceholder(txCategorySelect.value);
+  if(lastAutoCategory && lastAutoKeyword && txCategorySelect.value !== lastAutoCategory){
+    showRulePrompt(lastAutoKeyword, txCategorySelect.value);
+  } else {
+    hideRulePrompt();
+  }
+});
+txDescInput.placeholder = categoryPlaceholder(txCategorySelect.value);
 
 function updateBrandPreview(text){
   const brand = detectBrand(text);
@@ -1227,9 +1369,22 @@ function updateBrandPreview(text){
 
 txDescInput.addEventListener('input', ()=>{
   const brand = updateBrandPreview(txDescInput.value);
-  if(brand){
-    txCategorySelect.value = brand.category;
-    txDescInput.placeholder = CATEGORY_PLACEHOLDERS[brand.category] || 'Descrição';
+  hideRulePrompt();
+  const ruleCategory = detectCategoryRule(txDescInput.value);
+  if(ruleCategory && allCategories.some(c=>c.name === ruleCategory)){
+    txCategorySelect.value = ruleCategory;
+    txDescInput.placeholder = categoryPlaceholder(ruleCategory);
+    lastAutoCategory = null;
+    lastAutoKeyword = null;
+  } else if(brand){
+    const cat = resolveBrandCategory(brand);
+    txCategorySelect.value = cat;
+    txDescInput.placeholder = categoryPlaceholder(cat);
+    lastAutoCategory = cat;
+    lastAutoKeyword = brand.name;
+  } else {
+    lastAutoCategory = null;
+    lastAutoKeyword = null;
   }
 });
 
@@ -1241,8 +1396,11 @@ function startEdit(id){
   document.getElementById('tx-amount').value = t.amount;
   document.getElementById('tx-category').value = t.category;
   document.getElementById('tx-date').value = t.occurred_on;
-  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[t.category] || 'Descrição';
+  txDescInput.placeholder = categoryPlaceholder(t.category);
   updateBrandPreview(t.description);
+  hideRulePrompt();
+  lastAutoCategory = null;
+  lastAutoKeyword = null;
   txPaymentSelect.value = t.payment_method || 'pix';
   txInstallmentsInput.value = t.installments_total || 2;
   toggleInstallmentsField();
@@ -1263,8 +1421,11 @@ function cancelEdit(){
   document.querySelectorAll('.type-toggle:not(.debt-toggle) button').forEach(b=>b.classList.remove('active'));
   document.querySelector('.type-toggle:not(.debt-toggle) button[data-type="despesa"]').classList.add('active');
   selectedType = 'despesa';
-  txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+  txDescInput.placeholder = categoryPlaceholder(txCategorySelect.value);
   updateBrandPreview('');
+  hideRulePrompt();
+  lastAutoCategory = null;
+  lastAutoKeyword = null;
   txPaymentSelect.value = lastPaymentMethod;
   toggleInstallmentsField();
   txFormTitle.textContent = 'Novo lançamento';
@@ -1332,6 +1493,200 @@ async function loadTransactions(){
   renderAll();
 }
 
+/* ---------- categorias: carregar, semear, popular seletores ---------- */
+async function loadCategories(){
+  const { data, error } = await db.from('categories').select('*').order('sort_order', { ascending:true });
+  if(error){ allCategories = []; renderCategorySelects(); return; }
+  if(!data || data.length === 0){
+    await seedDefaultCategories();
+    const retry = await db.from('categories').select('*').order('sort_order', { ascending:true });
+    allCategories = retry.data || [];
+  } else {
+    allCategories = data;
+  }
+  renderCategorySelects();
+  renderCategoryManageUI();
+  renderBudgetForm();
+  renderAll();
+}
+
+async function seedDefaultCategories(){
+  const { data: { session } } = await db.auth.getSession();
+  const rows = DEFAULT_CATEGORY_SEED.map(c => ({ ...c, user_id: session.user.id }));
+  await db.from('categories').insert(rows);
+}
+
+async function loadCategoryRules(){
+  const { data, error } = await db.from('category_rules').select('*');
+  allCategoryRules = error ? [] : (data || []);
+}
+
+function renderCategorySelects(){
+  const opts = allCategories.map(c => `<option value="${escapeHtml(c.name)}">${c.icon} ${escapeHtml(c.name)}</option>`).join('');
+  const prevTx = document.getElementById('tx-category').value;
+  const prevFilter = document.getElementById('filter-category').value;
+  document.getElementById('tx-category').innerHTML = opts;
+  document.getElementById('filter-category').innerHTML = '<option value="">Todas as categorias</option>' + opts;
+  if(allCategories.some(c=>c.name === prevTx)) document.getElementById('tx-category').value = prevTx;
+  if(allCategories.some(c=>c.name === prevFilter)) document.getElementById('filter-category').value = prevFilter;
+}
+
+/* ---------- painel de gerenciar categorias (aba Perfil) ---------- */
+function renderCategoryManageUI(){
+  const wrap = document.getElementById('category-manage-list');
+  wrap.innerHTML = allCategories.map((c, idx) => `
+    <div class="cat-row" data-id="${c.id}">
+      <input type="text" class="cat-icon-input" value="${c.icon}" maxlength="4" data-id="${c.id}">
+      <input type="text" class="cat-name-input" value="${escapeHtml(c.name)}" data-id="${c.id}" data-oldname="${escapeHtml(c.name)}">
+      <input type="color" class="cat-color-input" value="${c.color}" data-id="${c.id}">
+      <button type="button" class="cat-default-btn ${c.is_default ? 'active' : ''}" data-id="${c.id}" title="Definir como padrão">★</button>
+      <button type="button" class="cat-move" data-id="${c.id}" data-dir="-1" title="Mover para cima" ${idx===0?'disabled':''}>↑</button>
+      <button type="button" class="cat-move" data-id="${c.id}" data-dir="1" title="Mover para baixo" ${idx===allCategories.length-1?'disabled':''}>↓</button>
+      <button type="button" class="cat-del" data-id="${c.id}" title="Excluir categoria">✕</button>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('.cat-icon-input').forEach(el=>{
+    el.addEventListener('change', ()=> updateCategoryField(el.dataset.id, { icon: el.value.trim() || '🏷️' }));
+  });
+  wrap.querySelectorAll('.cat-name-input').forEach(el=>{
+    el.addEventListener('change', ()=> renameCategory(el.dataset.id, el.dataset.oldname, el.value.trim()));
+  });
+  wrap.querySelectorAll('.cat-color-input').forEach(el=>{
+    el.addEventListener('change', ()=> updateCategoryField(el.dataset.id, { color: el.value }));
+  });
+  wrap.querySelectorAll('.cat-default-btn').forEach(el=>{
+    el.addEventListener('click', ()=> setDefaultCategory(el.dataset.id));
+  });
+  wrap.querySelectorAll('.cat-move').forEach(el=>{
+    el.addEventListener('click', ()=> moveCategory(el.dataset.id, parseInt(el.dataset.dir,10)));
+  });
+  wrap.querySelectorAll('.cat-del').forEach(el=>{
+    el.addEventListener('click', ()=> deleteCategory(el.dataset.id));
+  });
+}
+
+function showCatMsg(text){
+  const el = document.getElementById('cat-manage-msg');
+  el.textContent = text;
+  el.style.display = 'block';
+  setTimeout(()=>{ el.style.display = 'none'; }, 3000);
+}
+
+async function updateCategoryField(id, fields){
+  const { error } = await db.from('categories').update(fields).eq('id', id);
+  if(error){ showCatMsg('Não foi possível salvar. Tente novamente.'); return; }
+  Object.assign(allCategories.find(c=>c.id===id), fields);
+  renderCategorySelects();
+  renderBudgetForm();
+  renderAll();
+  showToast('Categoria atualizada.');
+}
+
+async function renameCategory(id, oldName, newName){
+  if(!newName || newName === oldName) return;
+  if(allCategories.some(c=>c.id !== id && c.name === newName)){
+    showCatMsg('Já existe uma categoria com esse nome.');
+    renderCategoryManageUI();
+    return;
+  }
+  const { error } = await db.from('categories').update({ name: newName }).eq('id', id);
+  if(error){ showCatMsg('Não foi possível renomear. Tente novamente.'); renderCategoryManageUI(); return; }
+  // mantém o histórico consistente: atualiza lançamentos e orçamentos que usavam o nome antigo
+  await db.from('transactions').update({ category: newName }).eq('category', oldName);
+  await db.from('budgets').update({ category: newName }).eq('category', oldName);
+  const cat = allCategories.find(c=>c.id===id);
+  cat.name = newName;
+  showToast('Categoria renomeada — o histórico foi atualizado junto.');
+  loadTransactions();
+  loadBudgets();
+  renderCategorySelects();
+  renderCategoryManageUI();
+}
+
+async function setDefaultCategory(id){
+  const { data: { session } } = await db.auth.getSession();
+  await db.from('categories').update({ is_default: false }).eq('user_id', session.user.id);
+  const { error } = await db.from('categories').update({ is_default: true }).eq('id', id);
+  if(error){ showCatMsg('Não foi possível definir a categoria padrão.'); return; }
+  allCategories.forEach(c => c.is_default = (c.id === id));
+  renderCategoryManageUI();
+  renderAll();
+  showToast('Categoria padrão definida.');
+}
+
+async function moveCategory(id, dir){
+  const idx = allCategories.findIndex(c=>c.id===id);
+  const swapIdx = idx + dir;
+  if(swapIdx < 0 || swapIdx >= allCategories.length) return;
+  const a = allCategories[idx], b = allCategories[swapIdx];
+  const aOrder = a.sort_order, bOrder = b.sort_order;
+  const [{error: e1}, {error: e2}] = await Promise.all([
+    db.from('categories').update({ sort_order: bOrder }).eq('id', a.id),
+    db.from('categories').update({ sort_order: aOrder }).eq('id', b.id)
+  ]);
+  if(e1 || e2){ showCatMsg('Não foi possível reordenar.'); return; }
+  a.sort_order = bOrder; b.sort_order = aOrder;
+  allCategories.sort((x,y)=> x.sort_order - y.sort_order);
+  renderCategoryManageUI();
+  renderCategorySelects();
+  renderBudgetForm();
+}
+
+async function deleteCategory(id){
+  if(allCategories.length <= 1){
+    showCatMsg('Você precisa manter ao menos 1 categoria.');
+    return;
+  }
+  const cat = allCategories.find(c=>c.id===id);
+  if(!confirm(`Excluir a categoria "${cat.name}"? Lançamentos antigos com esse nome não serão apagados, só deixam de aparecer na lista de categorias.`)) return;
+  const { error } = await db.from('categories').delete().eq('id', id);
+  if(error){ showCatMsg('Não foi possível excluir.'); return; }
+  allCategories = allCategories.filter(c=>c.id !== id);
+  if(cat.is_default && allCategories.length > 0){
+    await setDefaultCategory(allCategories[0].id);
+  }
+  renderCategoryManageUI();
+  renderCategorySelects();
+  renderBudgetForm();
+  renderAll();
+  showToast('Categoria excluída.');
+}
+
+document.getElementById('cat-add-btn').addEventListener('click', async ()=>{
+  const iconEl = document.getElementById('cat-add-icon');
+  const nameEl = document.getElementById('cat-add-name');
+  const colorEl = document.getElementById('cat-add-color');
+  const name = nameEl.value.trim();
+  if(!name){
+    showCatMsg('Digite um nome para a categoria.');
+    return;
+  }
+  if(allCategories.some(c=>c.name === name)){
+    showCatMsg('Já existe uma categoria com esse nome.');
+    return;
+  }
+  const { data: { session } } = await db.auth.getSession();
+  const maxOrder = allCategories.reduce((m,c)=>Math.max(m, c.sort_order), -1);
+  const { error } = await db.from('categories').insert({
+    user_id: session.user.id,
+    name,
+    icon: iconEl.value.trim() || '🏷️',
+    color: colorEl.value,
+    sort_order: maxOrder + 1,
+    is_default: false
+  });
+  if(error){
+    showCatMsg('Não foi possível criar a categoria. Tente novamente.');
+    return;
+  }
+  nameEl.value = '';
+  iconEl.value = '🏷️';
+  colorEl.value = '#867A66';
+  showToast('Categoria criada.');
+  loadCategories();
+});
+
 /* ---------- orçamento por categoria ---------- */
 async function loadBudgets(){
   const { data, error } = await db.from('budgets').select('*');
@@ -1345,10 +1700,10 @@ async function loadBudgets(){
 
 function renderBudgetForm(){
   const wrap = document.getElementById('budget-form');
-  wrap.innerHTML = BUDGET_CATEGORIES.map(cat => `
+  wrap.innerHTML = allCategories.map(c => `
     <div class="budget-row">
-      <label>${cat}</label>
-      <input type="number" data-cat="${cat}" step="0.01" min="0" placeholder="Sem limite" value="${allBudgets[cat] ? allBudgets[cat] : ''}">
+      <label>${c.icon} ${escapeHtml(c.name)}</label>
+      <input type="number" data-cat="${escapeHtml(c.name)}" step="0.01" min="0" placeholder="Sem limite" value="${allBudgets[c.name] ? allBudgets[c.name] : ''}">
     </div>
   `).join('');
 }
@@ -1878,7 +2233,7 @@ function renderLedger(list){
     const brand = detectBrand(t.description);
     const icon = brand
       ? `<div class="tx-icon" style="background:${brand.bg};color:${brand.fg}">${brand.initial}</div>`
-      : `<div class="tx-icon">${CATEGORY_ICONS[t.category] || '📦'}</div>`;
+      : `<div class="tx-icon" style="border:2px solid ${categoryColor(t.category)}">${categoryIcon(t.category)}</div>`;
     return `
       <div class="tx-row" data-id="${t.id}">
         <div class="tx-left">
