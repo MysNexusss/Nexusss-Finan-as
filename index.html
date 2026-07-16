@@ -323,8 +323,10 @@
     width:42px; height:42px; border-radius:50%; flex-shrink:0;
     background:var(--paper);
     display:flex; align-items:center; justify-content:center;
-    font-size:18px;
+    font-size:18px; font-weight:700;
   }
+  .brand-preview{display:inline-flex; align-items:center; gap:5px; text-transform:none; letter-spacing:0; font-weight:600; color:var(--ink-soft); font-size:11.5px; vertical-align:middle;}
+  .brand-badge{width:16px; height:16px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:8.5px; font-weight:700; flex-shrink:0; line-height:1;}
   .tx-info{display:flex; flex-direction:column; gap:2px; min-width:0;}
   .tx-desc{font-size:14.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .tx-meta{font-size:12px; color:var(--ink-soft);}
@@ -639,7 +641,7 @@
         <form id="tx-form">
           <div class="form-grid">
             <div class="field">
-              <label for="tx-desc">Descrição</label>
+              <label for="tx-desc">Descrição <span class="brand-preview" id="tx-desc-brand"></span></label>
               <input type="text" id="tx-desc" placeholder="Ex.: Supermercado" required>
             </div>
             <div class="field">
@@ -886,6 +888,61 @@ const CATEGORY_ICONS = {
   'Outros': '📦'
 };
 
+/* ---------- reconhecimento de marcas ----------
+   Mapa fácil de estender: adicione um objeto novo no array BRANDS
+   com aliases (variações de escrita, já sem acento/minúsculo),
+   a categoria sugerida, e as cores oficiais da marca.
+   Não usamos os logotipos reais (são marca registrada) — em vez
+   disso, um selo colorido com a inicial, nas cores da marca. */
+const BRANDS = [
+  { name:'Spotify',    category:'Lazer',       bg:'#1DB954', fg:'#FFFFFF', initial:'S',  aliases:['spotify'] },
+  { name:'Netflix',    category:'Lazer',       bg:'#E50914', fg:'#FFFFFF', initial:'N',  aliases:['netflix'] },
+  { name:'Amazon',     category:'Outros',      bg:'#232F3E', fg:'#FF9900', initial:'a',  aliases:['amazon','amazon prime','prime video','amzn'] },
+  { name:'YouTube',    category:'Lazer',       bg:'#FF0000', fg:'#FFFFFF', initial:'Y',  aliases:['youtube','yt premium'] },
+  { name:'iFood',      category:'Alimentação', bg:'#EA1D2C', fg:'#FFFFFF', initial:'i',  aliases:['ifood'] },
+  { name:'Disney+',    category:'Lazer',       bg:'#113CCF', fg:'#FFFFFF', initial:'D',  aliases:['disney+','disney plus','disney'] },
+  { name:'Google',     category:'Outros',      bg:'#4285F4', fg:'#FFFFFF', initial:'G',  aliases:['google','google one','google drive','google play'] },
+  { name:'Apple',      category:'Outros',      bg:'#000000', fg:'#FFFFFF', initial:'A',  aliases:['apple','icloud','apple music','apple tv'] },
+  { name:'Microsoft',  category:'Outros',      bg:'#00A4EF', fg:'#FFFFFF', initial:'M',  aliases:['microsoft','office 365','microsoft 365'] },
+  { name:'Uber',       category:'Transporte',  bg:'#000000', fg:'#FFFFFF', initial:'U',  aliases:['uber','uber eats'] },
+  { name:'99',         category:'Transporte',  bg:'#FFC800', fg:'#000000', initial:'99', aliases:['99','99app','99 taxi'] },
+  { name:'HBO Max',    category:'Lazer',       bg:'#5822B4', fg:'#FFFFFF', initial:'H',  aliases:['hbo max','hbo'] },
+  { name:'Globoplay',  category:'Lazer',       bg:'#E60000', fg:'#FFFFFF', initial:'G',  aliases:['globoplay','globo play'] },
+  { name:'Claro',      category:'Moradia',     bg:'#E60014', fg:'#FFFFFF', initial:'C',  aliases:['claro'] },
+  { name:'Vivo',       category:'Moradia',     bg:'#660099', fg:'#FFFFFF', initial:'V',  aliases:['vivo'] },
+  { name:'Tim',        category:'Moradia',     bg:'#0033A0', fg:'#FFFFFF', initial:'T',  aliases:['tim'] },
+  { name:'Smart Fit',  category:'Saúde',       bg:'#FF6600', fg:'#FFFFFF', initial:'S',  aliases:['smart fit','smartfit'] }
+];
+// Observação: deixei de fora aliases muito curtos/ambíguos como "oi" (bate com
+// a saudação "oi") para evitar falso-positivo. "tim" e "claro" têm o mesmo
+// risco em menor grau — é uma sugestão, o usuário sempre pode trocar a categoria.
+
+function normalizeBrandText(str){
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9+\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function detectBrand(text){
+  const norm = normalizeBrandText(text);
+  if(!norm) return null;
+  for(const brand of BRANDS){
+    for(const alias of brand.aliases){
+      const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp('(^|\\s)' + escaped + '($|\\s)');
+      if(pattern.test(norm)) return brand;
+    }
+  }
+  return null;
+}
+
+function brandBadgeHtml(brand){
+  return `<span class="brand-badge" style="background:${brand.bg};color:${brand.fg}">${brand.initial}</span>`;
+}
+
 let currentTab = 'login';
 let allTx = [];
 let allBudgets = {};
@@ -1108,6 +1165,21 @@ txCategorySelect.addEventListener('change', ()=>{
 });
 txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
 
+function updateBrandPreview(text){
+  const brand = detectBrand(text);
+  const el = document.getElementById('tx-desc-brand');
+  el.innerHTML = brand ? `${brandBadgeHtml(brand)}${brand.name}` : '';
+  return brand;
+}
+
+txDescInput.addEventListener('input', ()=>{
+  const brand = updateBrandPreview(txDescInput.value);
+  if(brand){
+    txCategorySelect.value = brand.category;
+    txDescInput.placeholder = CATEGORY_PLACEHOLDERS[brand.category] || 'Descrição';
+  }
+});
+
 function startEdit(id){
   const t = allTx.find(tx=>tx.id === id);
   if(!t) return;
@@ -1117,6 +1189,7 @@ function startEdit(id){
   document.getElementById('tx-category').value = t.category;
   document.getElementById('tx-date').value = t.occurred_on;
   txDescInput.placeholder = CATEGORY_PLACEHOLDERS[t.category] || 'Descrição';
+  updateBrandPreview(t.description);
   document.querySelectorAll('.type-toggle:not(.debt-toggle) button').forEach(b=>b.classList.remove('active'));
   document.querySelector(`.type-toggle:not(.debt-toggle) button[data-type="${t.type}"]`).classList.add('active');
   selectedType = t.type;
@@ -1135,6 +1208,7 @@ function cancelEdit(){
   document.querySelector('.type-toggle:not(.debt-toggle) button[data-type="despesa"]').classList.add('active');
   selectedType = 'despesa';
   txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
+  updateBrandPreview('');
   txFormTitle.textContent = 'Novo lançamento';
   addBtn.textContent = 'Lançar';
   cancelEditBtn.style.display = 'none';
@@ -1692,11 +1766,14 @@ function renderLedger(list){
     const amtLabel = t.type === 'despesa'
       ? `(${currency.format(t.amount)})`
       : currency.format(t.amount);
-    const icon = CATEGORY_ICONS[t.category] || '📦';
+    const brand = detectBrand(t.description);
+    const icon = brand
+      ? `<div class="tx-icon" style="background:${brand.bg};color:${brand.fg}">${brand.initial}</div>`
+      : `<div class="tx-icon">${CATEGORY_ICONS[t.category] || '📦'}</div>`;
     return `
       <div class="tx-row" data-id="${t.id}">
         <div class="tx-left">
-          <div class="tx-icon">${icon}</div>
+          ${icon}
           <div class="tx-info">
             <div class="tx-desc">${escapeHtml(t.description)}</div>
             <div class="tx-meta">${t.category} · ${dateLabel}</div>
