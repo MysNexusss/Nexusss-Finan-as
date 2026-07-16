@@ -570,6 +570,37 @@
     #debt-add-btn{width:100%;}
   }
 
+  .add-inline-btn{
+    background:var(--gold-soft); color:var(--gold-deep); border:none; border-radius:20px;
+    padding:7px 14px; font-size:12.5px; font-weight:700;
+  }
+
+  /* ---------- MODAL / BOTTOM SHEET (novo lançamento) ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(28,26,22,0.5);
+    z-index:60; opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .modal-overlay.show{opacity:1; pointer-events:auto;}
+  .bottom-sheet{
+    position:fixed; left:0; right:0; bottom:0; max-width:520px; margin:0 auto;
+    background:var(--paper); border-radius:26px 26px 0 0;
+    z-index:61; max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:10px 20px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(100%); transition:transform .3s ease;
+    box-shadow:0 -10px 40px rgba(28,26,22,0.2);
+  }
+  .bottom-sheet.show{transform:translateY(0);}
+  .bottom-sheet.hidden{display:none;}
+  .modal-overlay.hidden{display:none;}
+  .sheet-handle{width:40px; height:4px; background:var(--line); border-radius:4px; margin:6px auto 14px;}
+  .sheet-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:10px;}
+  .sheet-header h2{margin:0; font-size:18px;}
+  .sheet-header-actions{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+  .sheet-close{
+    background:var(--card); border:1px solid var(--line); width:32px; height:32px;
+    border-radius:50%; font-size:14px; color:var(--ink-soft); flex-shrink:0;
+  }
+
   .toast{
     position:fixed; left:50%; bottom:110px; transform:translateX(-50%) translateY(12px);
     background:var(--ink); color:#fff; padding:12px 20px; border-radius:14px;
@@ -730,75 +761,12 @@
     <!-- ===== EXTRATO ===== -->
     <section class="tab-content" id="tab-extrato">
       <div class="page-title">Extrato</div>
-      <div class="card">
-        <div class="panel-header">
-          <h2 id="tx-form-title">Novo lançamento</h2>
-          <button type="button" class="cancel-edit-btn" id="cancel-edit-btn">Cancelar edição</button>
-        </div>
-        <form id="tx-form">
-          <div class="form-grid">
-            <div class="field">
-              <label for="tx-desc">Descrição <span class="brand-preview" id="tx-desc-brand"></span></label>
-              <input type="text" id="tx-desc" placeholder="Ex.: Supermercado" required>
-            </div>
-            <div class="field">
-              <label for="tx-amount">Valor (R$)</label>
-              <input type="number" id="tx-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required>
-            </div>
-            <div class="field">
-              <label>Tipo</label>
-              <div class="type-toggle">
-                <button type="button" class="active" data-type="despesa">Despesa</button>
-                <button type="button" data-type="receita">Receita</button>
-              </div>
-            </div>
-          </div>
-          <div class="form-row2">
-            <div class="field">
-              <label for="tx-category">Categoria</label>
-              <select id="tx-category">
-                <option>Alimentação</option>
-                <option>Transporte</option>
-                <option>Moradia</option>
-                <option>Saúde</option>
-                <option>Lazer</option>
-                <option>Educação</option>
-                <option>Salário</option>
-                <option>Outros</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="tx-date">Data</label>
-              <input type="date" id="tx-date" required>
-            </div>
-            <div class="field">
-              <label for="tx-payment">Pagamento</label>
-              <select id="tx-payment">
-                <option value="pix">Pix</option>
-                <option value="debito">Débito</option>
-                <option value="credito">Crédito</option>
-                <option value="boleto">Boleto</option>
-              </select>
-            </div>
-            <button type="submit" id="add-btn">Lançar</button>
-          </div>
-          <div class="field" id="tx-installments-field">
-            <label for="tx-installments">Número de parcelas</label>
-            <input type="number" id="tx-installments" min="2" step="1" value="2">
-          </div>
-          <div class="rule-prompt hidden" id="rule-prompt">
-            <span id="rule-prompt-text"></span>
-            <div class="rule-prompt-actions">
-              <button type="button" id="rule-prompt-save">Salvar regra</button>
-              <button type="button" id="rule-prompt-dismiss">Agora não</button>
-            </div>
-          </div>
-        </form>
-        <div id="form-msg"></div>
-      </div>
 
       <div class="card">
-        <h2>Lançamentos</h2>
+        <div class="panel-header">
+          <h2>Lançamentos</h2>
+          <button type="button" class="add-inline-btn" id="add-inline-btn">+ Novo</button>
+        </div>
         <div class="search-wrap">
           <input type="search" id="search-tx" placeholder="Buscar por descrição..." autocomplete="off">
           <button type="button" id="search-clear" class="search-clear hidden" aria-label="Limpar busca">✕</button>
@@ -978,6 +946,80 @@
       </div>
     </section>
   </main>
+
+  <div class="modal-overlay hidden" id="tx-modal-overlay"></div>
+  <div class="bottom-sheet hidden" id="tx-modal">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="tx-form-title">Novo lançamento</h2>
+      <div class="sheet-header-actions">
+        <button type="button" class="cancel-edit-btn" id="cancel-edit-btn">Cancelar edição</button>
+        <button type="button" class="sheet-close" id="tx-modal-close" aria-label="Fechar">✕</button>
+      </div>
+    </div>
+    <div class="sheet-body">
+      <form id="tx-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="tx-desc">Descrição <span class="brand-preview" id="tx-desc-brand"></span></label>
+            <input type="text" id="tx-desc" placeholder="Ex.: Supermercado" required>
+          </div>
+          <div class="field">
+            <label for="tx-amount">Valor (R$)</label>
+            <input type="number" id="tx-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required>
+          </div>
+          <div class="field">
+            <label>Tipo</label>
+            <div class="type-toggle">
+              <button type="button" class="active" data-type="despesa">Despesa</button>
+              <button type="button" data-type="receita">Receita</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row2">
+          <div class="field">
+            <label for="tx-category">Categoria</label>
+            <select id="tx-category">
+              <option>Alimentação</option>
+              <option>Transporte</option>
+              <option>Moradia</option>
+              <option>Saúde</option>
+              <option>Lazer</option>
+              <option>Educação</option>
+              <option>Salário</option>
+              <option>Outros</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="tx-date">Data</label>
+            <input type="date" id="tx-date" required>
+          </div>
+          <div class="field">
+            <label for="tx-payment">Pagamento</label>
+            <select id="tx-payment">
+              <option value="pix">Pix</option>
+              <option value="debito">Débito</option>
+              <option value="credito">Crédito</option>
+              <option value="boleto">Boleto</option>
+            </select>
+          </div>
+          <button type="submit" id="add-btn">Lançar</button>
+        </div>
+        <div class="field" id="tx-installments-field">
+          <label for="tx-installments">Número de parcelas</label>
+          <input type="number" id="tx-installments" min="2" step="1" value="2">
+        </div>
+        <div class="rule-prompt hidden" id="rule-prompt">
+          <span id="rule-prompt-text"></span>
+          <div class="rule-prompt-actions">
+            <button type="button" id="rule-prompt-save">Salvar regra</button>
+            <button type="button" id="rule-prompt-dismiss">Agora não</button>
+          </div>
+        </div>
+      </form>
+      <div id="form-msg"></div>
+    </div>
+  </div>
 
   <nav class="tabbar">
     <div class="tabbar-inner">
@@ -1287,10 +1329,46 @@ document.querySelectorAll('.subtab-toggle button[data-subtab]').forEach(b=>{
   b.addEventListener('click', ()=> setSubTab(b.dataset.subtab));
 });
 
+/* ---------- modal / bottom sheet de lançamento ---------- */
+function openTxModal(){
+  const overlay = document.getElementById('tx-modal-overlay');
+  const sheet = document.getElementById('tx-modal');
+  overlay.classList.remove('hidden');
+  sheet.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(()=>{
+    overlay.classList.add('show');
+    sheet.classList.add('show');
+  });
+  setTimeout(()=>{ document.getElementById('tx-desc').focus(); }, 300);
+}
+
+function closeTxModal(){
+  const overlay = document.getElementById('tx-modal-overlay');
+  const sheet = document.getElementById('tx-modal');
+  overlay.classList.remove('show');
+  sheet.classList.remove('show');
+  document.body.style.overflow = '';
+  setTimeout(()=>{
+    overlay.classList.add('hidden');
+    sheet.classList.add('hidden');
+  }, 300);
+  cancelEdit();
+}
+
+document.getElementById('tx-modal-overlay').addEventListener('click', closeTxModal);
+document.getElementById('tx-modal-close').addEventListener('click', closeTxModal);
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && document.getElementById('tx-modal').classList.contains('show')) closeTxModal();
+});
+
 document.getElementById('nav-add-btn').addEventListener('click', ()=>{
   cancelEdit();
-  setTab('extrato');
-  setTimeout(()=>{ document.getElementById('tx-desc').focus(); }, 150);
+  openTxModal();
+});
+document.getElementById('add-inline-btn').addEventListener('click', ()=>{
+  cancelEdit();
+  openTxModal();
 });
 document.getElementById('toggle-saldo').addEventListener('click', ()=>{
   saldoHidden = !saldoHidden;
@@ -1481,8 +1559,7 @@ function startEdit(id){
   txFormTitle.textContent = 'Editar lançamento';
   addBtn.textContent = 'Salvar alterações';
   cancelEditBtn.style.display = 'inline-block';
-  setTab('extrato');
-  txForm.scrollIntoView({ behavior:'smooth', block:'start' });
+  openTxModal();
 }
 
 function cancelEdit(){
@@ -1541,7 +1618,7 @@ txForm.addEventListener('submit', async (e)=>{
   }
   lastPaymentMethod = payment_method;
   const wasEditing = !!editingId;
-  cancelEdit();
+  closeTxModal();
   showToast(wasEditing ? 'Lançamento atualizado.' : 'Lançamento salvo.');
   loadTransactions();
 });
