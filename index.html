@@ -246,6 +246,26 @@
   .insight-fill.despesa{background:var(--rose);}
   .insight-compare{font-size:12px; color:var(--ink-soft); margin-top:8px;}
 
+  /* ---------- SIMULADOR DE COMPRA ---------- */
+  .sim-toggle button.active{background:var(--charcoal-card); color:var(--gold);}
+  #sim-installments-field{display:none;}
+  #sim-btn{
+    margin-top:14px;
+    background:var(--gold); color:var(--ink); border:none; border-radius:14px;
+    padding:13px 20px; font-weight:700; font-size:14px; width:100%;
+  }
+  #sim-btn:disabled{opacity:0.6;}
+  .sim-result{margin-top:18px; border-top:1px dashed var(--line); padding-top:16px;}
+  .sim-compare{display:flex; gap:10px; margin-bottom:14px;}
+  .sim-compare-item{flex:1; background:var(--paper); border-radius:14px; padding:12px 14px; text-align:center; min-width:0;}
+  .sim-compare-item .label{font-size:11px; color:var(--ink-soft); margin-bottom:4px;}
+  .sim-compare-item .value{font-size:16px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sim-status{padding:12px 14px; border-radius:14px; font-size:13px; font-weight:600; margin-bottom:10px; line-height:1.4;}
+  .sim-status.ok{background:var(--gold-soft); color:var(--gold-deep);}
+  .sim-status.warn{background:#F3E5D3; color:var(--amber-text);}
+  .sim-status.bad{background:#F5E6E1; color:var(--rose-text);}
+  .sim-note{font-size:12px; color:var(--ink-soft); line-height:1.5;}
+
   /* ---------- RESOLVE CARD ---------- */
   .resolve-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); font-size:13px;}
   .resolve-item:last-child{border-bottom:none;}
@@ -560,6 +580,44 @@
           </div>
         </div>
         <div class="insight-compare" id="insight-compare"></div>
+      </div>
+
+      <div class="card">
+        <h2>Simulador de compra</h2>
+        <p class="hint">Veja como uma compra afeta seu saldo previsto até o fim do mês.</p>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+          <div class="field">
+            <label for="sim-amount">Valor do item (R$)</label>
+            <input type="number" id="sim-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00">
+          </div>
+          <div class="field">
+            <label>Forma de pagamento</label>
+            <div class="type-toggle sim-toggle">
+              <button type="button" class="active" data-simtype="avista">À vista</button>
+              <button type="button" data-simtype="parcelado">Parcelado</button>
+            </div>
+          </div>
+        </div>
+        <div class="field" id="sim-installments-field">
+          <label for="sim-installments">Número de parcelas</label>
+          <input type="number" id="sim-installments" min="2" step="1" value="2">
+        </div>
+        <button type="button" id="sim-btn">Simular compra</button>
+
+        <div class="sim-result hidden" id="sim-result">
+          <div class="sim-compare">
+            <div class="sim-compare-item">
+              <div class="label">Sem a compra</div>
+              <div class="value mono" id="sim-sem">R$ 0,00</div>
+            </div>
+            <div class="sim-compare-item">
+              <div class="label">Com a compra</div>
+              <div class="value mono" id="sim-com">R$ 0,00</div>
+            </div>
+          </div>
+          <div class="sim-status" id="sim-status"></div>
+          <div class="sim-note" id="sim-note"></div>
+        </div>
       </div>
 
       <div class="card">
@@ -970,6 +1028,60 @@ document.getElementById('nav-add-btn').addEventListener('click', ()=>{
 document.getElementById('toggle-saldo').addEventListener('click', ()=>{
   saldoHidden = !saldoHidden;
   renderHero();
+});
+
+/* ---------- simulador de compra ---------- */
+let simType = 'avista';
+document.querySelectorAll('.sim-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.sim-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    simType = btn.dataset.simtype;
+    document.getElementById('sim-installments-field').style.display = simType === 'parcelado' ? 'block' : 'none';
+  });
+});
+
+document.getElementById('sim-btn').addEventListener('click', ()=>{
+  const valor = parseFloat(document.getElementById('sim-amount').value);
+  if(!valor || valor <= 0){
+    showToast('Informe um valor válido para simular.');
+    return;
+  }
+  const parcelas = simType === 'parcelado'
+    ? Math.max(parseInt(document.getElementById('sim-installments').value, 10) || 2, 2)
+    : 1;
+  const impacto = simType === 'parcelado' ? valor / parcelas : valor;
+
+  const projecaoSem = computeProjection();
+  const projecaoCom = projecaoSem - impacto;
+
+  document.getElementById('sim-sem').textContent = currency.format(projecaoSem);
+  const comEl = document.getElementById('sim-com');
+  comEl.textContent = currency.format(projecaoCom);
+
+  const statusEl = document.getElementById('sim-status');
+  const noteEl = document.getElementById('sim-note');
+  let statusClass, statusText, comColor;
+
+  if(projecaoCom < 0){
+    statusClass = 'bad'; comColor = 'var(--rose-text)';
+    statusText = '⚠ Essa compra deixaria seu saldo previsto negativo até o fim do mês.';
+  } else if(projecaoCom < projecaoSem * 0.25){
+    statusClass = 'warn'; comColor = 'var(--amber-text)';
+    statusText = '⚠ Vai sobrar pouco. Essa compra aperta bastante o seu orçamento.';
+  } else {
+    statusClass = 'ok'; comColor = 'var(--gold-deep)';
+    statusText = '✓ Essa compra cabe tranquilamente no seu orçamento.';
+  }
+  comEl.style.color = comColor;
+  statusEl.className = 'sim-status ' + statusClass;
+  statusEl.textContent = statusText;
+
+  noteEl.textContent = simType === 'parcelado'
+    ? `Considerando a 1ª parcela de ${currency.format(impacto)} (${parcelas}x de ${currency.format(impacto)}). As próximas ${parcelas-1} parcela${parcelas-1>1?'s':''} vão impactar os meses seguintes.`
+    : `Valor total de ${currency.format(valor)} descontado de uma vez.`;
+
+  document.getElementById('sim-result').classList.remove('hidden');
 });
 
 /* ---------- formulário de lançamento ---------- */
