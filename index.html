@@ -446,6 +446,42 @@
   .debt-del:hover{color:var(--rose-text); background:var(--paper);}
   .debt-empty{color:var(--ink-soft); font-size:13px; text-align:center; padding:14px 0;}
 
+  /* ---------- METAS ---------- */
+  .meta-form-row{display:grid; grid-template-columns:1fr auto; gap:12px; margin-top:12px; align-items:end;}
+  #meta-add-btn{
+    background:var(--gold); color:var(--ink); border:none; border-radius:14px;
+    padding:13px 20px; font-weight:700; font-size:14px; white-space:nowrap;
+  }
+  #meta-add-btn:disabled{opacity:0.6;}
+  #meta-form-msg{font-size:13px; color:var(--rose-text); margin-top:10px; display:none;}
+
+  .meta-card{padding:16px 0; border-bottom:1px solid var(--line);}
+  .meta-card:last-child{border-bottom:none;}
+  .meta-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .meta-left{display:flex; align-items:center; gap:12px; min-width:0; flex:1;}
+  .meta-icon{
+    width:42px; height:42px; border-radius:50%; flex-shrink:0; background:var(--paper);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .meta-name{font-size:14.5px; font-weight:600; color:var(--ink);}
+  .meta-meta{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .meta-del{background:none; border:none; color:var(--ink-soft); font-size:14px; padding:4px 5px; border-radius:8px; flex-shrink:0;}
+  .meta-del:hover{color:var(--rose-text); background:var(--paper);}
+  .meta-progress-track{background:var(--paper); border-radius:4px; height:8px; overflow:hidden; margin-top:10px;}
+  .meta-progress-fill{height:100%; border-radius:4px; background:var(--gold);}
+  .meta-progress-fill.done{background:var(--gold-deep);}
+  .meta-footer{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px;}
+  .meta-note{font-size:11.5px; color:var(--ink-soft); line-height:1.4;}
+  .meta-add-btn{background:var(--gold-soft); color:var(--gold-deep); border:none; border-radius:20px; padding:6px 12px; font-size:11.5px; font-weight:700; white-space:nowrap; flex-shrink:0;}
+  .meta-add-form{display:none; gap:8px; margin-top:10px;}
+  .meta-add-form.active{display:flex;}
+  .meta-add-form input{
+    flex:1; padding:9px 10px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:16px; color:var(--ink);
+  }
+  .meta-add-form button{background:var(--gold); color:var(--ink); border:none; border-radius:10px; padding:9px 14px; font-weight:700; font-size:13px;}
+  .meta-done-badge{font-size:11px; font-weight:700; color:var(--gold-deep); background:var(--gold-soft); padding:2px 9px; border-radius:20px;}
+
   /* ---------- PERFIL ---------- */
   .profile-avatar{
     width:64px; height:64px; border-radius:50%; margin:4px auto 14px;
@@ -799,6 +835,7 @@
         <div class="subtab-toggle">
           <button type="button" class="active" data-subtab="orcamento">Orçamento</button>
           <button type="button" data-subtab="dividas">Dívidas</button>
+          <button type="button" data-subtab="metas">Metas</button>
         </div>
       </div>
 
@@ -877,6 +914,39 @@
         <div class="card">
           <h2>Devem a você</h2>
           <div id="debt-list-me-devem"><div class="debt-empty">Carregando…</div></div>
+        </div>
+      </div>
+
+      <div class="subtab-content" id="substat-metas">
+        <div class="card" style="margin-top:14px;">
+          <h2>Nova meta</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="meta-name">Nome da meta</label>
+              <input type="text" id="meta-name" placeholder="Ex.: Viagem, reserva de emergência">
+            </div>
+            <div class="field">
+              <label for="meta-amount">Valor alvo (R$)</label>
+              <input type="number" id="meta-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00">
+            </div>
+            <div class="field">
+              <label for="meta-icon">Ícone</label>
+              <input type="text" id="meta-icon" maxlength="4" value="🎯">
+            </div>
+          </div>
+          <div class="meta-form-row">
+            <div class="field">
+              <label for="meta-date">Prazo (opcional)</label>
+              <input type="date" id="meta-date">
+            </div>
+            <button type="button" id="meta-add-btn">Criar meta</button>
+          </div>
+          <div id="meta-form-msg"></div>
+        </div>
+
+        <div class="card">
+          <h2>Suas metas</h2>
+          <div id="meta-list"><div class="debt-empty">Carregando…</div></div>
         </div>
       </div>
     </section>
@@ -1186,6 +1256,7 @@ function handleSession(session){
     loadTransactions();
     loadBudgets();
     loadDividas();
+    loadMetas();
   } else {
     appScreen.classList.add('hidden');
     authScreen.classList.remove('hidden');
@@ -1880,6 +1951,169 @@ async function deleteDivida(id){
   allDividas = allDividas.filter(d=>d.id !== id);
   renderDividas();
   showToast('Dívida excluída.');
+}
+
+/* ---------- metas financeiras ---------- */
+let allMetas = [];
+
+async function loadMetas(){
+  const { data, error } = await db.from('metas').select('*').order('created_at', { ascending:true });
+  if(!error){ allMetas = data || []; }
+  renderMetas();
+}
+
+function metaIsDone(m){ return Number(m.current_amount) >= Number(m.target_amount); }
+
+function monthsUntil(dateStr){
+  const target = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  let months = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
+  if(target.getDate() < now.getDate()) months -= 1;
+  return months;
+}
+
+function metaNote(m){
+  if(metaIsDone(m)) return 'Meta concluída — parabéns!';
+  if(!m.target_date) return '';
+  const target = new Date(m.target_date + 'T00:00:00');
+  const restante = Number(m.target_amount) - Number(m.current_amount);
+  const dataLabel = target.toLocaleDateString('pt-BR');
+  if(target < new Date()) return `Prazo (${dataLabel}) já passou — faltam ${currency.format(restante)}.`;
+  const months = Math.max(monthsUntil(m.target_date), 1);
+  const porMes = restante / months;
+  return `Guarde ~${currency.format(porMes)}/mês para chegar lá até ${dataLabel}.`;
+}
+
+document.getElementById('meta-add-btn').addEventListener('click', async ()=>{
+  const nameEl = document.getElementById('meta-name');
+  const amountEl = document.getElementById('meta-amount');
+  const iconEl = document.getElementById('meta-icon');
+  const dateEl = document.getElementById('meta-date');
+  const msg = document.getElementById('meta-form-msg');
+  const btn = document.getElementById('meta-add-btn');
+
+  const name = nameEl.value.trim();
+  const target_amount = parseFloat(amountEl.value);
+
+  if(!name || !target_amount || target_amount <= 0){
+    msg.textContent = 'Preencha o nome da meta e um valor alvo maior que zero.';
+    msg.style.display = 'block';
+    return;
+  }
+  msg.style.display = 'none';
+  btn.disabled = true;
+
+  const { data: { session } } = await db.auth.getSession();
+  const { error } = await db.from('metas').insert({
+    user_id: session.user.id,
+    name,
+    target_amount,
+    icon: iconEl.value.trim() || '🎯',
+    target_date: dateEl.value || null,
+    current_amount: 0
+  });
+
+  btn.disabled = false;
+  if(error){
+    msg.textContent = 'Não foi possível criar a meta. Tente novamente.';
+    msg.style.display = 'block';
+    return;
+  }
+  nameEl.value = '';
+  amountEl.value = '';
+  iconEl.value = '🎯';
+  dateEl.value = '';
+  showToast('Meta criada.');
+  loadMetas();
+});
+
+function renderMetas(){
+  const wrap = document.getElementById('meta-list');
+  if(allMetas.length === 0){
+    wrap.innerHTML = '<div class="debt-empty">Nenhuma meta ainda. Crie a primeira acima.</div>';
+    return;
+  }
+  wrap.innerHTML = allMetas.map(m=>{
+    const done = metaIsDone(m);
+    const pct = Math.min((Number(m.current_amount)/Number(m.target_amount))*100, 100).toFixed(0);
+    const restante = Math.max(Number(m.target_amount) - Number(m.current_amount), 0);
+    return `
+      <div class="meta-card" data-id="${m.id}">
+        <div class="meta-top">
+          <div class="meta-left">
+            <div class="meta-icon">${m.icon}</div>
+            <div>
+              <div class="meta-name">${escapeHtml(m.name)}</div>
+              <div class="meta-meta">${currency.format(m.current_amount)} de ${currency.format(m.target_amount)}${done ? '' : ' · faltam ' + currency.format(restante)}</div>
+            </div>
+          </div>
+          <button class="meta-del" title="Excluir meta" data-id="${m.id}">✕</button>
+        </div>
+        <div class="meta-progress-track"><div class="meta-progress-fill ${done?'done':''}" style="width:${pct}%"></div></div>
+        <div class="meta-footer">
+          <span class="meta-note">${done ? '<span class="meta-done-badge">🎉 Concluída</span>' : metaNote(m)}</span>
+          ${done ? '' : `<button class="meta-add-btn" data-id="${m.id}">+ Adicionar</button>`}
+        </div>
+        ${done ? '' : `
+          <div class="meta-add-form" id="meta-add-form-${m.id}">
+            <input type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="Valor guardado" id="meta-add-input-${m.id}">
+            <button type="button" data-id="${m.id}">OK</button>
+          </div>
+        `}
+      </div>
+    `;
+  }).join('');
+
+  wrap.querySelectorAll('.meta-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteMeta(btn.dataset.id));
+  });
+  wrap.querySelectorAll('.meta-add-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const form = document.getElementById(`meta-add-form-${btn.dataset.id}`);
+      form.classList.toggle('active');
+      if(form.classList.contains('active')){
+        document.getElementById(`meta-add-input-${btn.dataset.id}`).focus();
+      }
+    });
+  });
+  wrap.querySelectorAll('.meta-add-form button').forEach(btn=>{
+    btn.addEventListener('click', ()=>addMetaProgress(btn.dataset.id));
+  });
+  wrap.querySelectorAll('.meta-add-form input').forEach(input=>{
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        const id = input.id.replace('meta-add-input-', '');
+        addMetaProgress(id);
+      }
+    });
+  });
+}
+
+async function addMetaProgress(id){
+  const input = document.getElementById(`meta-add-input-${id}`);
+  const valor = parseFloat(input.value);
+  if(!valor || valor <= 0){
+    showToast('Digite um valor válido.');
+    return;
+  }
+  const meta = allMetas.find(m=>m.id === id);
+  const novoValor = Number(meta.current_amount) + valor;
+  const { error } = await db.from('metas').update({ current_amount: novoValor }).eq('id', id);
+  if(error){ showToast('Não foi possível atualizar a meta.'); return; }
+  const wasDone = metaIsDone(meta);
+  meta.current_amount = novoValor;
+  renderMetas();
+  showToast(!wasDone && metaIsDone(meta) ? '🎉 Meta concluída!' : 'Progresso salvo.');
+}
+
+async function deleteMeta(id){
+  if(!confirm('Excluir esta meta?')) return;
+  const { error } = await db.from('metas').delete().eq('id', id);
+  if(error){ alert('Não foi possível excluir. Tente novamente.'); return; }
+  allMetas = allMetas.filter(m=>m.id !== id);
+  renderMetas();
+  showToast('Meta excluída.');
 }
 
 /* ---------- navegação de mês (aba Extrato) ---------- */
