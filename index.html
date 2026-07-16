@@ -218,6 +218,7 @@
     padding-top:14px; font-size:13px; opacity:0.9;
   }
   .hero-projection .value{font-weight:700; color:var(--gold); opacity:1;}
+  .hero-projection-note{font-size:11px; opacity:0.65; margin-top:4px; line-height:1.4;}
 
   /* ---------- HEALTH CARD ---------- */
   .health-card{display:flex; gap:16px; align-items:center;}
@@ -305,6 +306,19 @@
   }
   #add-btn:disabled{opacity:0.6;}
   #form-msg{font-size:13px; color:var(--rose-text); margin-top:10px; display:none;}
+
+  .search-wrap{position:relative; margin-bottom:10px;}
+  .search-wrap input{
+    width:100%; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:14px;
+    background:var(--paper); font-size:16px; color:var(--ink);
+  }
+  .search-wrap input::-webkit-search-cancel-button{display:none;}
+  .search-clear{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    background:none; border:none; color:var(--ink-soft); font-size:13px; padding:7px; border-radius:50%; line-height:1;
+  }
+  .search-clear:hover{background:var(--line);}
+  .search-note{font-size:12px; color:var(--ink-soft); margin:-2px 0 12px;}
 
   .filters{display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap;}
   .filters select{
@@ -539,9 +553,10 @@
           </div>
         </div>
         <div class="hero-projection">
-          <span title="Estimativa com base no ritmo de gastos deste mês">Previsto fim do mês</span>
+          <span>Previsto fim do mês</span>
           <span class="value mono" id="hero-projection">R$ 0,00</span>
         </div>
+        <div class="hero-projection-note" id="hero-projection-note"></div>
       </div>
 
       <div class="card health-card">
@@ -696,6 +711,11 @@
 
       <div class="card">
         <h2>Lançamentos</h2>
+        <div class="search-wrap">
+          <input type="search" id="search-tx" placeholder="Buscar por descrição..." autocomplete="off">
+          <button type="button" id="search-clear" class="search-clear hidden" aria-label="Limpar busca">✕</button>
+        </div>
+        <div class="search-note hidden" id="search-note"></div>
         <div class="filters">
           <div class="month-nav">
             <button type="button" id="prev-month" aria-label="Mês anterior">‹</button>
@@ -1563,6 +1583,21 @@ document.getElementById('filter-category').addEventListener('change', renderAll)
 document.getElementById('prev-month').addEventListener('click', ()=>shiftMonth(-1));
 document.getElementById('next-month').addEventListener('click', ()=>shiftMonth(1));
 
+/* ---------- busca de lançamentos ---------- */
+const searchInput = document.getElementById('search-tx');
+const searchClearBtn = document.getElementById('search-clear');
+
+searchInput.addEventListener('input', ()=>{
+  searchClearBtn.classList.toggle('hidden', !searchInput.value);
+  renderAll();
+});
+searchClearBtn.addEventListener('click', ()=>{
+  searchInput.value = '';
+  searchClearBtn.classList.add('hidden');
+  renderAll();
+  searchInput.focus();
+});
+
 /* ---------- cálculos derivados ---------- */
 function greetingWord(){
   const h = new Date().getHours();
@@ -1587,9 +1622,22 @@ function currentMonthTx(){
   return allTx.filter(t=>t.occurred_on.slice(0,7) === cmKey);
 }
 
+function monthSpendDayCount(){
+  const despesasMes = currentMonthTx().filter(t=>t.type==='despesa');
+  return new Set(despesasMes.map(t=>t.occurred_on)).size;
+}
+
 function computeProjection(){
   const now = new Date();
-  const despesaMes = currentMonthTx().filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0);
+  const despesasMes = currentMonthTx().filter(t=>t.type==='despesa');
+  const despesaMes = despesasMes.reduce((s,t)=>s+Number(t.amount),0);
+
+  // com gastos em só 1 dia (ou nenhum), ainda não dá pra estimar um "ritmo"
+  // confiável — extrapolar isso faria uma compra única parecer recorrente.
+  if(monthSpendDayCount() < 2){
+    return computeAllTimeBalance();
+  }
+
   const diasNoMes = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   const diaAtual = now.getDate();
   const mediaDiaria = despesaMes / diaAtual;
@@ -1655,7 +1703,22 @@ function renderAll(){
 
   const month = document.getElementById('filter-month').value;
   const category = document.getElementById('filter-category').value;
-  const filtered = allTx.filter(t=> t.occurred_on.slice(0,7) === month && (!category || t.category === category));
+  const rawSearch = searchInput.value.trim();
+  const searchTerm = normalizeBrandText(rawSearch);
+  const searchNote = document.getElementById('search-note');
+
+  let filtered;
+  if(searchTerm){
+    filtered = allTx.filter(t=>
+      normalizeBrandText(t.description).includes(searchTerm) &&
+      (!category || t.category === category)
+    );
+    searchNote.textContent = `Mostrando resultados de todos os meses para "${rawSearch}".`;
+    searchNote.classList.remove('hidden');
+  } else {
+    filtered = allTx.filter(t=> t.occurred_on.slice(0,7) === month && (!category || t.category === category));
+    searchNote.classList.add('hidden');
+  }
   renderLedger(filtered);
 }
 
@@ -1672,6 +1735,9 @@ function renderHero(){
   document.getElementById('hero-despesa').textContent = saldoHidden ? '••••' : currency.format(despesa);
   document.getElementById('hero-projection').textContent = saldoHidden ? '••••••' : currency.format(projecao);
   document.getElementById('toggle-saldo').textContent = saldoHidden ? 'Mostrar saldo' : 'Ocultar saldo';
+  document.getElementById('hero-projection-note').textContent = monthSpendDayCount() < 2
+    ? 'Ainda sem ritmo de gastos suficiente este mês — mostrando o saldo atual.'
+    : 'Estimativa com base no ritmo de gastos deste mês.';
 }
 
 function renderHealth(){
