@@ -297,6 +297,7 @@
   .type-toggle button.active[data-type="despesa"]{background:var(--rose); color:#fff;}
   .type-toggle button.active[data-type="receita"]{background:var(--gold); color:var(--ink);}
   .form-row2{display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; margin-top:12px; align-items:end;}
+  #tx-installments-field{display:none; margin-top:12px;}
   #add-btn{
     background:var(--gold);
     color:var(--ink); border:none; border-radius:14px; padding:13px 20px;
@@ -674,8 +675,20 @@
               <label for="tx-date">Data</label>
               <input type="date" id="tx-date" required>
             </div>
-            <div></div>
+            <div class="field">
+              <label for="tx-payment">Pagamento</label>
+              <select id="tx-payment">
+                <option value="pix">Pix</option>
+                <option value="debito">Débito</option>
+                <option value="credito">Crédito</option>
+                <option value="boleto">Boleto</option>
+              </select>
+            </div>
             <button type="submit" id="add-btn">Lançar</button>
+          </div>
+          <div class="field" id="tx-installments-field">
+            <label for="tx-installments">Número de parcelas</label>
+            <input type="number" id="tx-installments" min="2" step="1" value="2">
           </div>
         </form>
         <div id="form-msg"></div>
@@ -1159,6 +1172,26 @@ const txCategorySelect = document.getElementById('tx-category');
 const txDescInput = document.getElementById('tx-desc');
 const txFormTitle = document.getElementById('tx-form-title');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
+const txPaymentSelect = document.getElementById('tx-payment');
+const txInstallmentsField = document.getElementById('tx-installments-field');
+const txInstallmentsInput = document.getElementById('tx-installments');
+let lastPaymentMethod = 'pix';
+
+const PAYMENT_LABELS = { pix:'Pix', debito:'Débito', credito:'Crédito', boleto:'Boleto' };
+
+function toggleInstallmentsField(){
+  const isCredito = txPaymentSelect.value === 'credito';
+  txInstallmentsField.style.display = isCredito ? 'block' : 'none';
+  if(!isCredito) txInstallmentsInput.value = 2;
+}
+txPaymentSelect.addEventListener('change', toggleInstallmentsField);
+
+function paymentLabelFor(t){
+  const base = PAYMENT_LABELS[t.payment_method] || 'Pix';
+  return (t.payment_method === 'credito' && t.installments_total > 1)
+    ? `${base} ${t.installments_total}x`
+    : base;
+}
 
 txCategorySelect.addEventListener('change', ()=>{
   txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
@@ -1190,6 +1223,9 @@ function startEdit(id){
   document.getElementById('tx-date').value = t.occurred_on;
   txDescInput.placeholder = CATEGORY_PLACEHOLDERS[t.category] || 'Descrição';
   updateBrandPreview(t.description);
+  txPaymentSelect.value = t.payment_method || 'pix';
+  txInstallmentsInput.value = t.installments_total || 2;
+  toggleInstallmentsField();
   document.querySelectorAll('.type-toggle:not(.debt-toggle) button').forEach(b=>b.classList.remove('active'));
   document.querySelector(`.type-toggle:not(.debt-toggle) button[data-type="${t.type}"]`).classList.add('active');
   selectedType = t.type;
@@ -1209,6 +1245,8 @@ function cancelEdit(){
   selectedType = 'despesa';
   txDescInput.placeholder = CATEGORY_PLACEHOLDERS[txCategorySelect.value] || 'Descrição';
   updateBrandPreview('');
+  txPaymentSelect.value = lastPaymentMethod;
+  toggleInstallmentsField();
   txFormTitle.textContent = 'Novo lançamento';
   addBtn.textContent = 'Lançar';
   cancelEditBtn.style.display = 'none';
@@ -1223,6 +1261,10 @@ txForm.addEventListener('submit', async (e)=>{
   const amount = parseFloat(document.getElementById('tx-amount').value);
   const category = document.getElementById('tx-category').value;
   const occurred_on = document.getElementById('tx-date').value;
+  const payment_method = txPaymentSelect.value;
+  const installments_total = payment_method === 'credito'
+    ? Math.max(parseInt(txInstallmentsInput.value, 10) || 2, 2)
+    : 1;
 
   if(!description || !amount || amount <= 0){
     formMsg.textContent = 'Preencha a descrição e um valor maior que zero.';
@@ -1233,7 +1275,7 @@ txForm.addEventListener('submit', async (e)=>{
   addBtn.disabled = true;
 
   const { data: { session } } = await db.auth.getSession();
-  const payload = { description, amount, category, occurred_on, type: selectedType };
+  const payload = { description, amount, category, occurred_on, type: selectedType, payment_method, installments_total };
 
   const { error } = editingId
     ? await db.from('transactions').update(payload).eq('id', editingId)
@@ -1245,6 +1287,7 @@ txForm.addEventListener('submit', async (e)=>{
     formMsg.style.display = 'block';
     return;
   }
+  lastPaymentMethod = payment_method;
   const wasEditing = !!editingId;
   cancelEdit();
   showToast(wasEditing ? 'Lançamento atualizado.' : 'Lançamento salvo.');
@@ -1776,7 +1819,7 @@ function renderLedger(list){
           ${icon}
           <div class="tx-info">
             <div class="tx-desc">${escapeHtml(t.description)}</div>
-            <div class="tx-meta">${t.category} · ${dateLabel}</div>
+            <div class="tx-meta">${t.category} · ${dateLabel} · ${paymentLabelFor(t)}</div>
           </div>
         </div>
         <div class="tx-right">
