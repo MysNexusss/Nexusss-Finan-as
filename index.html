@@ -355,6 +355,8 @@
   .tx-info{display:flex; flex-direction:column; gap:2px; min-width:0;}
   .tx-desc{font-size:14.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .tx-meta{font-size:12px; color:var(--ink-soft);}
+  .tx-tags{display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;}
+  .tx-tag{background:var(--gold-soft); color:var(--gold-deep); font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:20px;}
   .tx-right{display:flex; align-items:center; gap:8px; flex-shrink:0;}
   .tx-amt{font-size:15px; font-weight:700;}
   .tx-amt.despesa{color:var(--rose-text);}
@@ -390,6 +392,21 @@
   #budget-msg{font-size:13px; margin-top:8px; display:none;}
 
   .category-bars{display:flex; flex-direction:column; gap:12px;}
+
+  /* ---------- GRÁFICO DE ROSCA ---------- */
+  .donut-wrap{position:relative; width:168px; height:168px; margin:4px auto 20px;}
+  .donut-ring{width:100%; height:100%; border-radius:50%;}
+  .donut-center{
+    position:absolute; inset:24px; background:var(--card); border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+  }
+  .donut-total{font-size:15px; font-weight:700; color:var(--ink);}
+  .donut-total-label{font-size:10px; color:var(--ink-soft); margin-top:2px;}
+  .donut-legend{display:flex; flex-direction:column; gap:9px;}
+  .donut-legend-item{display:flex; align-items:center; gap:8px; font-size:12.5px;}
+  .donut-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .donut-legend-name{flex:1; color:var(--ink-soft); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .donut-legend-pct{color:var(--ink); font-weight:600;}
   .cat-row{display:grid; grid-template-columns:100px 1fr 92px; align-items:center; gap:10px;}
   .cat-row .cat-name{font-size:13px; color:var(--ink-soft);}
   .cat-row .bar-track{background:var(--paper); border-radius:4px; height:8px; overflow:hidden;}
@@ -497,6 +514,26 @@
   }
   .signout-full:hover{background:#F5E6E1;}
 
+  /* ---------- LANÇAMENTOS FIXOS ---------- */
+  .type-toggle.rec-toggle button.active[data-rtype="despesa"]{background:var(--rose); color:#fff;}
+  .type-toggle.rec-toggle button.active[data-rtype="receita"]{background:var(--gold); color:var(--ink);}
+  #rec-add-btn{
+    background:var(--gold); color:var(--ink); border:none; border-radius:14px;
+    padding:13px 18px; font-weight:700; font-size:13.5px; white-space:nowrap;
+  }
+  #rec-form-msg{font-size:13px; color:var(--rose-text); margin-top:10px; display:none;}
+  .rec-row{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line);}
+  .rec-row:last-child{border-bottom:none;}
+  .rec-row.paused{opacity:0.5;}
+  .rec-info{flex:1; min-width:0;}
+  .rec-name{font-size:14px; font-weight:600; color:var(--ink);}
+  .rec-meta{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .rec-actions{display:flex; align-items:center; gap:6px; flex-shrink:0;}
+  .rec-toggle-btn{background:none; border:1px solid var(--line); border-radius:20px; padding:5px 11px; font-size:11px; font-weight:600; color:var(--ink-soft);}
+  .rec-toggle-btn.active{background:var(--gold-soft); color:var(--gold-deep); border-color:transparent;}
+  .rec-del{background:none; border:none; color:var(--ink-soft); font-size:14px; padding:4px 5px; border-radius:8px;}
+  .rec-del:hover{color:var(--rose-text); background:var(--paper);}
+
   /* ---------- GERENCIAR CATEGORIAS ---------- */
   .cat-row{
     display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--line);
@@ -570,9 +607,14 @@
     #debt-add-btn{width:100%;}
   }
 
+  .panel-header-actions{display:flex; align-items:center; gap:8px;}
   .add-inline-btn{
     background:var(--gold-soft); color:var(--gold-deep); border:none; border-radius:20px;
     padding:7px 14px; font-size:12.5px; font-weight:700;
+  }
+  .export-btn{
+    background:none; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px;
+    padding:7px 12px; font-size:12px; font-weight:600;
   }
 
   /* ---------- MODAL / BOTTOM SHEET (novo lançamento) ---------- */
@@ -765,7 +807,10 @@
       <div class="card">
         <div class="panel-header">
           <h2>Lançamentos</h2>
-          <button type="button" class="add-inline-btn" id="add-inline-btn">+ Novo</button>
+          <div class="panel-header-actions">
+            <button type="button" class="export-btn" id="export-csv-btn" title="Exportar CSV">⭳ CSV</button>
+            <button type="button" class="add-inline-btn" id="add-inline-btn">+ Novo</button>
+          </div>
         </div>
         <div class="search-wrap">
           <input type="search" id="search-tx" placeholder="Buscar por descrição..." autocomplete="off">
@@ -808,6 +853,11 @@
       </div>
 
       <div class="subtab-content active" id="substat-orcamento">
+        <div class="card">
+          <h2>Distribuição de gastos (mês atual)</h2>
+          <div id="category-donut"><div class="empty-state">Sem despesas neste mês ainda.</div></div>
+        </div>
+
         <div class="card" style="margin-top:14px;">
           <h2>Orçamento por categoria</h2>
           <p class="hint">Defina um limite mensal para cada categoria. Deixe em branco para não acompanhar.</p>
@@ -942,6 +992,50 @@
       </div>
 
       <div class="card">
+        <h2>Lançamentos fixos</h2>
+        <p class="hint">Contas que se repetem todo mês (aluguel, assinaturas...). São lançados automaticamente quando você abre o app num mês novo.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="rec-desc">Descrição</label>
+            <input type="text" id="rec-desc" placeholder="Ex.: Aluguel">
+          </div>
+          <div class="field">
+            <label for="rec-amount">Valor (R$)</label>
+            <input type="number" id="rec-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00">
+          </div>
+          <div class="field">
+            <label>Tipo</label>
+            <div class="type-toggle rec-toggle">
+              <button type="button" class="active" data-rtype="despesa">Despesa</button>
+              <button type="button" data-rtype="receita">Receita</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row2" style="grid-template-columns:1fr 1fr 1fr auto;">
+          <div class="field">
+            <label for="rec-category">Categoria</label>
+            <select id="rec-category"></select>
+          </div>
+          <div class="field">
+            <label for="rec-day">Dia do mês</label>
+            <input type="number" id="rec-day" min="1" max="28" value="1">
+          </div>
+          <div class="field">
+            <label for="rec-payment">Pagamento</label>
+            <select id="rec-payment">
+              <option value="pix">Pix</option>
+              <option value="debito">Débito</option>
+              <option value="credito">Crédito</option>
+              <option value="boleto">Boleto</option>
+            </select>
+          </div>
+          <button type="button" id="rec-add-btn">Criar fixo</button>
+        </div>
+        <div id="rec-form-msg"></div>
+        <div id="rec-list" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="card">
         <button id="signout-btn" class="signout-full">Sair da conta</button>
       </div>
     </section>
@@ -1008,6 +1102,10 @@
         <div class="field" id="tx-installments-field">
           <label for="tx-installments">Número de parcelas</label>
           <input type="number" id="tx-installments" min="2" step="1" value="2">
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label for="tx-tags">Tags (opcional, separadas por vírgula)</label>
+          <input type="text" id="tx-tags" placeholder="Ex.: trabalho, reembolsável">
         </div>
         <div class="rule-prompt hidden" id="rule-prompt">
           <span id="rule-prompt-text"></span>
@@ -1299,6 +1397,7 @@ function handleSession(session){
     loadBudgets();
     loadDividas();
     loadMetas();
+    loadRecurring();
   } else {
     appScreen.classList.add('hidden');
     authScreen.classList.remove('hidden');
@@ -1370,6 +1469,45 @@ document.getElementById('add-inline-btn').addEventListener('click', ()=>{
   cancelEdit();
   openTxModal();
 });
+
+document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+
+function csvEscape(val){
+  const s = String(val ?? '');
+  if(/[",;\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+function exportCSV(){
+  const list = getFilteredLedgerList();
+  if(list.length === 0){
+    showToast('Nada para exportar com os filtros atuais.');
+    return;
+  }
+  const header = ['Data','Descrição','Categoria','Tipo','Valor','Método de pagamento','Parcelas','Tags'];
+  const rows = list.map(t => [
+    new Date(t.occurred_on + 'T00:00:00').toLocaleDateString('pt-BR'),
+    t.description,
+    t.category,
+    t.type === 'despesa' ? 'Despesa' : 'Receita',
+    Number(t.amount).toFixed(2).replace('.', ','),
+    paymentLabelFor(t),
+    t.installments_total || 1,
+    (t.tags || []).join('; ')
+  ]);
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(';')).join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `caderneta_lancamentos_${monthKey(new Date())}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast(`${list.length} lançamento${list.length>1?'s':''} exportado${list.length>1?'s':''}.`);
+}
+
 document.getElementById('toggle-saldo').addEventListener('click', ()=>{
   saldoHidden = !saldoHidden;
   renderHero();
@@ -1545,6 +1683,7 @@ function startEdit(id){
   document.getElementById('tx-amount').value = t.amount;
   document.getElementById('tx-category').value = t.category;
   document.getElementById('tx-date').value = t.occurred_on;
+  document.getElementById('tx-tags').value = (t.tags || []).join(', ');
   txDescInput.placeholder = categoryPlaceholder(t.category);
   updateBrandPreview(t.description);
   hideRulePrompt();
@@ -1594,6 +1733,8 @@ txForm.addEventListener('submit', async (e)=>{
   const installments_total = payment_method === 'credito'
     ? Math.max(parseInt(txInstallmentsInput.value, 10) || 2, 2)
     : 1;
+  const tags = document.getElementById('tx-tags').value
+    .split(',').map(s=>s.trim()).filter(Boolean);
 
   if(!description || !amount || amount <= 0){
     formMsg.textContent = 'Preencha a descrição e um valor maior que zero.';
@@ -1604,7 +1745,7 @@ txForm.addEventListener('submit', async (e)=>{
   addBtn.disabled = true;
 
   const { data: { session } } = await db.auth.getSession();
-  const payload = { description, amount, category, occurred_on, type: selectedType, payment_method, installments_total };
+  const payload = { description, amount, category, occurred_on, type: selectedType, payment_method, installments_total, tags };
 
   const { error } = editingId
     ? await db.from('transactions').update(payload).eq('id', editingId)
@@ -1675,6 +1816,7 @@ function renderCategorySelects(){
   const prevFilter = document.getElementById('filter-category').value;
   document.getElementById('tx-category').innerHTML = opts;
   document.getElementById('filter-category').innerHTML = '<option value="">Todas as categorias</option>' + opts;
+  document.getElementById('rec-category').innerHTML = opts;
   if(allCategories.some(c=>c.name === prevTx)) document.getElementById('tx-category').value = prevTx;
   if(allCategories.some(c=>c.name === prevFilter)) document.getElementById('filter-category').value = prevFilter;
 }
@@ -2193,6 +2335,142 @@ async function deleteMeta(id){
   showToast('Meta excluída.');
 }
 
+/* ---------- lançamentos fixos (recorrentes) ---------- */
+let allRecurring = [];
+let selectedRecType = 'despesa';
+
+document.querySelectorAll('.rec-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.rec-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedRecType = btn.dataset.rtype;
+  });
+});
+
+async function loadRecurring(){
+  const { data, error } = await db.from('recurring_transactions').select('*').order('created_at', { ascending:true });
+  allRecurring = error ? [] : (data || []);
+  renderRecurringList();
+  await generateDueRecurring();
+}
+
+async function generateDueRecurring(){
+  const cmKey = monthKey(new Date());
+  const due = allRecurring.filter(r => r.is_active && r.last_generated_month !== cmKey);
+  if(due.length === 0) return;
+
+  const { data: { session } } = await db.auth.getSession();
+  for(const r of due){
+    const occurred_on = `${cmKey}-${String(r.day_of_month).padStart(2,'0')}`;
+    await db.from('transactions').insert({
+      user_id: session.user.id,
+      description: r.description,
+      amount: r.amount,
+      category: r.category,
+      type: r.type,
+      payment_method: r.payment_method || 'pix',
+      installments_total: 1,
+      occurred_on,
+      tags: ['fixo']
+    });
+    await db.from('recurring_transactions').update({ last_generated_month: cmKey }).eq('id', r.id);
+    r.last_generated_month = cmKey;
+  }
+  showToast(`${due.length} lançamento${due.length>1?'s':''} fixo${due.length>1?'s':''} do mês lançado${due.length>1?'s':''} automaticamente.`);
+  loadTransactions();
+}
+
+document.getElementById('rec-add-btn').addEventListener('click', async ()=>{
+  const descEl = document.getElementById('rec-desc');
+  const amountEl = document.getElementById('rec-amount');
+  const categoryEl = document.getElementById('rec-category');
+  const dayEl = document.getElementById('rec-day');
+  const paymentEl = document.getElementById('rec-payment');
+  const msg = document.getElementById('rec-form-msg');
+  const btn = document.getElementById('rec-add-btn');
+
+  const description = descEl.value.trim();
+  const amount = parseFloat(amountEl.value);
+  const day_of_month = Math.min(Math.max(parseInt(dayEl.value, 10) || 1, 1), 28);
+
+  if(!description || !amount || amount <= 0){
+    msg.textContent = 'Preencha a descrição e um valor maior que zero.';
+    msg.style.display = 'block';
+    return;
+  }
+  msg.style.display = 'none';
+  btn.disabled = true;
+
+  const { data: { session } } = await db.auth.getSession();
+  const { error } = await db.from('recurring_transactions').insert({
+    user_id: session.user.id,
+    description,
+    amount,
+    category: categoryEl.value,
+    type: selectedRecType,
+    payment_method: paymentEl.value,
+    day_of_month,
+    is_active: true
+  });
+
+  btn.disabled = false;
+  if(error){
+    msg.textContent = 'Não foi possível criar o lançamento fixo. Tente novamente.';
+    msg.style.display = 'block';
+    return;
+  }
+  descEl.value = '';
+  amountEl.value = '';
+  dayEl.value = '1';
+  showToast('Lançamento fixo criado.');
+  loadRecurring();
+});
+
+function renderRecurringList(){
+  const wrap = document.getElementById('rec-list');
+  if(allRecurring.length === 0){
+    wrap.innerHTML = '<div class="debt-empty">Nenhum lançamento fixo cadastrado.</div>';
+    return;
+  }
+  wrap.innerHTML = allRecurring.map(r=>`
+    <div class="rec-row ${r.is_active ? '' : 'paused'}" data-id="${r.id}">
+      <div class="rec-info">
+        <div class="rec-name">${categoryIcon(r.category)} ${escapeHtml(r.description)}</div>
+        <div class="rec-meta">${currency.format(r.amount)} · todo dia ${r.day_of_month} · ${r.category}</div>
+      </div>
+      <div class="rec-actions">
+        <button class="rec-toggle-btn ${r.is_active ? 'active' : ''}" data-id="${r.id}">${r.is_active ? 'Ativo' : 'Pausado'}</button>
+        <button class="rec-del" title="Excluir lançamento fixo" data-id="${r.id}">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('.rec-toggle-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleRecurring(btn.dataset.id));
+  });
+  wrap.querySelectorAll('.rec-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteRecurring(btn.dataset.id));
+  });
+}
+
+async function toggleRecurring(id){
+  const r = allRecurring.find(x=>x.id === id);
+  const { error } = await db.from('recurring_transactions').update({ is_active: !r.is_active }).eq('id', id);
+  if(error){ showToast('Não foi possível atualizar.'); return; }
+  r.is_active = !r.is_active;
+  renderRecurringList();
+  showToast(r.is_active ? 'Lançamento fixo reativado.' : 'Lançamento fixo pausado.');
+}
+
+async function deleteRecurring(id){
+  if(!confirm('Excluir este lançamento fixo? Os lançamentos já gerados no histórico não serão apagados.')) return;
+  const { error } = await db.from('recurring_transactions').delete().eq('id', id);
+  if(error){ alert('Não foi possível excluir. Tente novamente.'); return; }
+  allRecurring = allRecurring.filter(r=>r.id !== id);
+  renderRecurringList();
+  showToast('Lançamento fixo excluído.');
+}
+
 /* ---------- navegação de mês (aba Extrato) ---------- */
 function monthKey(date){
   return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0');
@@ -2366,7 +2644,12 @@ function renderAll(){
   renderInsight();
   renderResolveCard();
   renderBudgetBars();
+  renderCategoryDonut();
 
+  renderLedger(getFilteredLedgerList());
+}
+
+function getFilteredLedgerList(){
   const month = document.getElementById('filter-month').value;
   const category = document.getElementById('filter-category').value;
   const rawSearch = searchInput.value.trim();
@@ -2375,17 +2658,18 @@ function renderAll(){
 
   let filtered;
   if(searchTerm){
-    filtered = allTx.filter(t=>
-      normalizeBrandText(t.description).includes(searchTerm) &&
-      (!category || t.category === category)
-    );
+    filtered = allTx.filter(t=>{
+      const inDesc = normalizeBrandText(t.description).includes(searchTerm);
+      const inTags = (t.tags || []).some(tag => normalizeBrandText(tag).includes(searchTerm));
+      return (inDesc || inTags) && (!category || t.category === category);
+    });
     searchNote.textContent = `Mostrando resultados de todos os meses para "${rawSearch}".`;
     searchNote.classList.remove('hidden');
   } else {
     filtered = allTx.filter(t=> t.occurred_on.slice(0,7) === month && (!category || t.category === category));
     searchNote.classList.add('hidden');
   }
-  renderLedger(filtered);
+  return filtered;
 }
 
 function renderHero(){
@@ -2495,6 +2779,45 @@ function renderResolveCard(){
   }));
 }
 
+function renderCategoryDonut(){
+  const wrap = document.getElementById('category-donut');
+  const totals = currentMonthDespesaTotals();
+  const entries = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  const total = entries.reduce((s,[,v])=>s+v, 0);
+
+  if(entries.length === 0 || total <= 0){
+    wrap.innerHTML = '<div class="empty-state">Sem despesas neste mês ainda.</div>';
+    return;
+  }
+
+  let acc = 0;
+  const stops = entries.map(([cat,val])=>{
+    const start = (acc/total)*100;
+    acc += val;
+    const end = (acc/total)*100;
+    return `${categoryColor(cat)} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+  }).join(', ');
+
+  const legend = entries.map(([cat,val])=>`
+    <div class="donut-legend-item">
+      <span class="donut-dot" style="background:${categoryColor(cat)}"></span>
+      <span class="donut-legend-name">${categoryIcon(cat)} ${escapeHtml(cat)}</span>
+      <span class="donut-legend-pct mono">${((val/total)*100).toFixed(0)}%</span>
+    </div>
+  `).join('');
+
+  wrap.innerHTML = `
+    <div class="donut-wrap">
+      <div class="donut-ring" style="background:conic-gradient(${stops})"></div>
+      <div class="donut-center">
+        <div class="donut-total mono">${currency.format(total)}</div>
+        <div class="donut-total-label">gasto no mês</div>
+      </div>
+    </div>
+    <div class="donut-legend">${legend}</div>
+  `;
+}
+
 function renderBudgetBars(){
   const wrap = document.getElementById('category-bars');
   const totals = currentMonthDespesaTotals();
@@ -2545,6 +2868,9 @@ function renderLedger(list){
     const icon = brand
       ? `<div class="tx-icon" style="background:${brand.bg};color:${brand.fg}">${brand.initial}</div>`
       : `<div class="tx-icon" style="border:2px solid ${categoryColor(t.category)}">${categoryIcon(t.category)}</div>`;
+    const tagsHtml = (t.tags && t.tags.length)
+      ? `<div class="tx-tags">${t.tags.map(tag=>`<span class="tx-tag">${escapeHtml(tag)}</span>`).join('')}</div>`
+      : '';
     return `
       <div class="tx-row" data-id="${t.id}">
         <div class="tx-left">
@@ -2552,6 +2878,7 @@ function renderLedger(list){
           <div class="tx-info">
             <div class="tx-desc">${escapeHtml(t.description)}</div>
             <div class="tx-meta">${t.category} · ${dateLabel} · ${paymentLabelFor(t)}</div>
+            ${tagsHtml}
           </div>
         </div>
         <div class="tx-right">
