@@ -368,10 +368,10 @@
 
   /* ---------- ESTATÍSTICAS: sub-abas ---------- */
   .subtab-toggle-wrap{padding:0 16px 6px;}
-  .subtab-toggle{display:flex; gap:8px; background:var(--card); border-radius:16px; padding:5px; box-shadow:0 6px 24px rgba(28,26,22,0.06);}
+  .subtab-toggle{display:flex; gap:5px; background:var(--card); border-radius:16px; padding:5px; box-shadow:0 6px 24px rgba(28,26,22,0.06);}
   .subtab-toggle button{
-    flex:1; padding:10px 0; border-radius:12px; border:none;
-    background:none; font-size:13px; font-weight:600; color:var(--ink-soft);
+    flex:1; padding:10px 2px; border-radius:12px; border:none;
+    background:none; font-size:11.5px; font-weight:600; color:var(--ink-soft); white-space:nowrap;
   }
   .subtab-toggle button.active{background:var(--charcoal-card); color:var(--gold);}
 
@@ -407,6 +407,40 @@
   .donut-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
   .donut-legend-name{flex:1; color:var(--ink-soft); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .donut-legend-pct{color:var(--ink); font-weight:600;}
+
+  /* ---------- RELATÓRIOS ---------- */
+  #report-period{
+    padding:8px 10px; border:1px solid var(--line); border-radius:12px;
+    background:var(--paper); font-size:13px; color:var(--ink);
+  }
+  .report-summary{display:flex; gap:8px; margin-bottom:16px;}
+  .report-summary-item{flex:1; background:var(--paper); border-radius:14px; padding:11px 10px; min-width:0; text-align:center;}
+  .report-summary-item .label{font-size:10.5px; color:var(--ink-soft); margin-bottom:4px;}
+  .report-summary-item .value{font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .report-summary-item.receita .value{color:var(--gold-deep);}
+  .report-summary-item.despesa .value{color:var(--rose-text);}
+  .report-summary-item.saldo .value{color:var(--ink);}
+  .report-legend-inline{display:flex; gap:16px; font-size:11.5px; color:var(--ink-soft); margin-bottom:10px;}
+  .report-legend-inline .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle;}
+  .report-legend-inline .dot.receita{background:var(--gold);}
+  .report-legend-inline .dot.despesa{background:var(--rose);}
+  .report-chart{display:flex; align-items:flex-end; gap:6px; height:140px; margin:4px 0 6px; overflow-x:auto; padding-bottom:2px;}
+  .report-month-col{display:flex; flex-direction:column; align-items:center; gap:6px; flex:0 0 auto; min-width:34px; height:100%; justify-content:flex-end;}
+  .report-bars{display:flex; align-items:flex-end; gap:3px; height:112px; width:100%; justify-content:center;}
+  .report-bar{width:10px; border-radius:3px 3px 0 0; min-height:2px;}
+  .report-bar.receita{background:var(--gold);}
+  .report-bar.despesa{background:var(--rose);}
+  .report-month-label{font-size:9.5px; color:var(--ink-soft); white-space:nowrap; text-transform:capitalize;}
+  .report-top-row{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line);}
+  .report-top-row:last-child{border-bottom:none;}
+  .report-top-icon{
+    width:36px; height:36px; border-radius:50%; background:var(--paper); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+  }
+  .report-top-info{flex:1; min-width:0;}
+  .report-top-desc{font-size:13.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .report-top-meta{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .report-top-amt{font-size:13.5px; font-weight:700; color:var(--rose-text); flex-shrink:0; white-space:nowrap;}
   .cat-row{display:grid; grid-template-columns:100px 1fr 92px; align-items:center; gap:10px;}
   .cat-row .cat-name{font-size:13px; color:var(--ink-soft);}
   .cat-row .bar-track{background:var(--paper); border-radius:4px; height:8px; overflow:hidden;}
@@ -849,6 +883,7 @@
           <button type="button" class="active" data-subtab="orcamento">Orçamento</button>
           <button type="button" data-subtab="dividas">Dívidas</button>
           <button type="button" data-subtab="metas">Metas</button>
+          <button type="button" data-subtab="relatorios">Relatórios</button>
         </div>
       </div>
 
@@ -965,6 +1000,50 @@
         <div class="card">
           <h2>Suas metas</h2>
           <div id="meta-list"><div class="debt-empty">Carregando…</div></div>
+        </div>
+      </div>
+
+      <div class="subtab-content" id="substat-relatorios">
+        <div class="card" style="margin-top:14px;">
+          <div class="panel-header">
+            <h2>Período</h2>
+            <select id="report-period">
+              <option value="3">Últimos 3 meses</option>
+              <option value="6" selected>Últimos 6 meses</option>
+              <option value="12">Últimos 12 meses</option>
+              <option value="year">Este ano</option>
+              <option value="all">Tudo</option>
+            </select>
+          </div>
+          <div class="report-summary">
+            <div class="report-summary-item receita">
+              <div class="label">Receitas</div>
+              <div class="value mono" id="report-receita">R$ 0,00</div>
+            </div>
+            <div class="report-summary-item despesa">
+              <div class="label">Despesas</div>
+              <div class="value mono" id="report-despesa">R$ 0,00</div>
+            </div>
+            <div class="report-summary-item saldo">
+              <div class="label">Saldo</div>
+              <div class="value mono" id="report-saldo">R$ 0,00</div>
+            </div>
+          </div>
+          <div class="report-legend-inline">
+            <span><span class="dot receita"></span> Receitas</span>
+            <span><span class="dot despesa"></span> Despesas</span>
+          </div>
+          <div class="report-chart" id="report-chart"></div>
+        </div>
+
+        <div class="card">
+          <h2>Gastos por categoria no período</h2>
+          <div id="report-donut"><div class="empty-state">Sem despesas neste período.</div></div>
+        </div>
+
+        <div class="card">
+          <h2>Maiores gastos do período</h2>
+          <div id="report-top-list"><div class="empty-state">Sem despesas neste período.</div></div>
         </div>
       </div>
     </section>
@@ -2645,6 +2724,7 @@ function renderAll(){
   renderResolveCard();
   renderBudgetBars();
   renderCategoryDonut();
+  renderReports();
 
   renderLedger(getFilteredLedgerList());
 }
@@ -2779,14 +2859,13 @@ function renderResolveCard(){
   }));
 }
 
-function renderCategoryDonut(){
-  const wrap = document.getElementById('category-donut');
-  const totals = currentMonthDespesaTotals();
+function renderDonutInto(elId, totals, centerLabel, emptyMsg){
+  const wrap = document.getElementById(elId);
   const entries = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
   const total = entries.reduce((s,[,v])=>s+v, 0);
 
   if(entries.length === 0 || total <= 0){
-    wrap.innerHTML = '<div class="empty-state">Sem despesas neste mês ainda.</div>';
+    wrap.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
     return;
   }
 
@@ -2811,11 +2890,117 @@ function renderCategoryDonut(){
       <div class="donut-ring" style="background:conic-gradient(${stops})"></div>
       <div class="donut-center">
         <div class="donut-total mono">${currency.format(total)}</div>
-        <div class="donut-total-label">gasto no mês</div>
+        <div class="donut-total-label">${centerLabel}</div>
       </div>
     </div>
     <div class="donut-legend">${legend}</div>
   `;
+}
+
+function renderCategoryDonut(){
+  renderDonutInto('category-donut', currentMonthDespesaTotals(), 'gasto no mês', 'Sem despesas neste mês ainda.');
+}
+
+/* ---------- relatórios por período ---------- */
+document.getElementById('report-period').addEventListener('change', renderReports);
+
+function getReportRangeStart(){
+  const period = document.getElementById('report-period').value;
+  const now = new Date();
+  if(period === 'year') return new Date(now.getFullYear(), 0, 1);
+  if(period === 'all'){
+    if(allTx.length === 0) return new Date(now.getFullYear(), now.getMonth(), 1);
+    const earliest = allTx.reduce((min,t)=> t.occurred_on < min ? t.occurred_on : min, allTx[0].occurred_on);
+    const [y,m] = earliest.split('-').map(Number);
+    return new Date(y, m-1, 1);
+  }
+  const n = parseInt(period, 10);
+  return new Date(now.getFullYear(), now.getMonth() - (n-1), 1);
+}
+
+function getReportTx(){
+  const start = getReportRangeStart();
+  const startKey = monthKey(start);
+  return allTx.filter(t => t.occurred_on.slice(0,7) >= startKey);
+}
+
+function monthLabelShort(mk){
+  const [y,m] = mk.split('-');
+  const d = new Date(Number(y), Number(m)-1, 1);
+  return d.toLocaleDateString('pt-BR', { month:'short' }).replace('.','');
+}
+
+function renderReports(){
+  const tx = getReportTx();
+  const receita = tx.filter(t=>t.type==='receita').reduce((s,t)=>s+Number(t.amount),0);
+  const despesa = tx.filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0);
+  document.getElementById('report-receita').textContent = currency.format(receita);
+  document.getElementById('report-despesa').textContent = currency.format(despesa);
+  document.getElementById('report-saldo').textContent = currency.format(receita - despesa);
+
+  renderReportChart(tx);
+
+  const catTotals = {};
+  tx.filter(t=>t.type==='despesa').forEach(t=>{ catTotals[t.category] = (catTotals[t.category]||0) + Number(t.amount); });
+  renderDonutInto('report-donut', catTotals, 'gasto no período', 'Sem despesas neste período.');
+
+  renderReportTopList(tx);
+}
+
+function renderReportChart(tx){
+  const start = getReportRangeStart();
+  const now = new Date();
+  const keys = [];
+  const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+  while(cur <= now){
+    keys.push(monthKey(cur));
+    cur.setMonth(cur.getMonth()+1);
+  }
+  const perMonth = keys.map(k=>{
+    const mtx = tx.filter(t=>t.occurred_on.slice(0,7)===k);
+    return {
+      key: k,
+      receita: mtx.filter(t=>t.type==='receita').reduce((s,t)=>s+Number(t.amount),0),
+      despesa: mtx.filter(t=>t.type==='despesa').reduce((s,t)=>s+Number(t.amount),0)
+    };
+  });
+  const max = Math.max(...perMonth.flatMap(m=>[m.receita, m.despesa]), 1);
+  const wrap = document.getElementById('report-chart');
+  wrap.innerHTML = perMonth.map(m=>{
+    const rH = m.receita > 0 ? Math.max((m.receita/max)*100, 4) : 0;
+    const dH = m.despesa > 0 ? Math.max((m.despesa/max)*100, 4) : 0;
+    return `
+      <div class="report-month-col">
+        <div class="report-bars">
+          <div class="report-bar receita" style="height:${rH}%" title="Receitas: ${currency.format(m.receita)}"></div>
+          <div class="report-bar despesa" style="height:${dH}%" title="Despesas: ${currency.format(m.despesa)}"></div>
+        </div>
+        <div class="report-month-label">${monthLabelShort(m.key)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderReportTopList(tx){
+  const wrap = document.getElementById('report-top-list');
+  const top = tx.filter(t=>t.type==='despesa').sort((a,b)=>Number(b.amount)-Number(a.amount)).slice(0,5);
+  if(top.length === 0){
+    wrap.innerHTML = '<div class="empty-state">Sem despesas neste período.</div>';
+    return;
+  }
+  wrap.innerHTML = top.map(t=>{
+    const dateLabel = new Date(t.occurred_on + 'T00:00:00').toLocaleDateString('pt-BR');
+    return `
+      <div class="report-top-row">
+        <div class="report-top-icon">${categoryIcon(t.category)}</div>
+        <div class="report-top-info">
+          <div class="report-top-desc">${escapeHtml(t.description)}</div>
+          <div class="report-top-meta">${t.category} · ${dateLabel}</div>
+        </div>
+        <div class="report-top-amt mono">${currency.format(t.amount)}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderBudgetBars(){
